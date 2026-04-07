@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }}</title>
+    <link rel="stylesheet" href="/assets/css/main.css?v={{ asset_version() }}">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body
+    data-page="{{ data_page }}"
+    data-view="{{ data_view or '' }}"
+    data-title="{{ page_title }}"
+    data-heading="{{ page_heading }}"
+    data-subtitle="{{ page_subtitle or '' }}"
+    data-main-class="{{ main_class or '' }}"
+    data-hide-header="{{ 1 if hide_header else 0 }}"
+>
+    <div id="app-shell-root"></div>
+    {% if bootstrap_data %}
+    <script>
+        window.KinematicsBootstrap = {{ bootstrap_data | tojson }};
+    </script>
+    {% endif %}
+    <script src="/assets/js/site.js?v={{ asset_version() }}"></script>
+    <script src="/assets/js/shell.js?v={{ asset_version() }}"></script>
+    <script src="/assets/js/app.js?v={{ asset_version() }}"></script>
+    {% for script in page_scripts %}
+    <script src="{{ script }}?v={{ asset_version() }}"></script>
+    {% endfor %}
+</body>
+</html>

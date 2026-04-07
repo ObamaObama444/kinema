@@ -1,0 +1,59 @@
+{
+  "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/profile",
+      "destination": "/app/profile",
+      "permanent": false
+    },
+    {
+      "source": "/goals",
+      "destination": "/app/profile",
+      "permanent": false
+    },
+    {
+      "source": "/app/goals",
+      "destination": "/app/profile",
+      "permanent": false
+    },
+    {
+      "source": "/app/exercises",
+      "destination": "/app/catalog",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/health",
+      "destination": "https://nonsticky-janet-unconjunctive.ngrok-free.dev/health"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://nonsticky-janet-unconjunctive.ngrok-free.dev/api/:path*"
+    },
+    {
+      "source": "/static/:path*",
+      "destination": "https://nonsticky-janet-unconjunctive.ngrok-free.dev/static/:path*"
+    },
+    {
+      "source": "/login",
+      "destination": "https://nonsticky-janet-unconjunctive.ngrok-free.dev/login"
+    },
+    {
+      "source": "/register",
+      "destination": "https://nonsticky-janet-unconjunctive.ngrok-free.dev/register"
+    },
+    {
+      "source": "/app/technique/:path*",
+      "destination": "/app/technique"
+    },
+    {
+      "source": "/app",
+      "destination": "https://nonsticky-janet-unconjunctive.ngrok-free.dev/app"
+    },
+    {
+      "source": "/app/:path*",
+      "destination": "https://nonsticky-janet-unconjunctive.ngrok-free.dev/app/:path*"
+    }
+  ]
+}

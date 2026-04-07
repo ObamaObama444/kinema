@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title or "Kinematics Mini App" }}</title>
+    <link rel="stylesheet" href="/assets/css/main.css?v={{ asset_version() }}">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body class="launcher-body">
+    <main class="boot-screen phone miniapp-launcher">
+        <div class="boot-screen__glow"></div>
+        <p class="pill launcher-pill">Telegram Mini App</p>
+        <header class="hero-head">
+            <div class="head-copy">
+                <p class="kicker">01 Public</p>
+                <h1>{{ headline or "Kinematics" }}</h1>
+                <p class="subtitle">{{ subheadline or "План, техника, прогресс и профиль в одном мобильном потоке." }}</p>
+            </div>
+            <div class="avatar">K</div>
+        </header>
+        <section class="hero-card stack launcher-hero">
+            <div class="row">
+                <span class="badge">mobile-first</span>
+                <span class="badge">green mini app</span>
+            </div>
+            <h2 class="hero-title">Открываю ваш фитнес-поток</h2>
+            <p id="launcher-status" class="boot-status" aria-live="polite">Проверяю сессию и подготавливаю стартовый экран.</p>
+            <p id="telegram-context" class="boot-hint">Проверяю Telegram WebApp…</p>
+            <p class="boot-userline">Telegram: <strong id="launcher-user">не определён</strong></p>
+            <div class="launcher-spinner-row">
+                <div class="boot-spinner" aria-hidden="true"></div>
+                <span class="muted">Если вход уже активен, сразу перейду в приложение.</span>
+            </div>
+        </section>
+    </main>
+
+    <script src="/assets/js/site.js?v={{ asset_version() }}"></script>
+    <script src="/assets/js/app.js?v={{ asset_version() }}"></script>
+    <script src="/assets/js/index.js?v={{ asset_version() }}"></script>
+</body>
+</html>

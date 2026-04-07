@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title or "Вход" }}</title>
+    <link rel="stylesheet" href="/assets/css/main.css?v={{ asset_version() }}">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body class="auth-body">
+    <main class="auth-layout">
+        <section class="phone auth-phone">
+            <p class="pill launcher-pill">Telegram Mini App</p>
+            <header class="hero-head auth-head">
+                <div class="head-copy">
+                    <p class="kicker">Login</p>
+                    <h1>Вход</h1>
+                    <p class="subtitle">Войдите, чтобы продолжить план, технику и прогресс в одном мобильном потоке.</p>
+                </div>
+                <div class="avatar">K</div>
+            </header>
+            <section class="auth-card">
+                <h1 class="auth-title">Вход в Kinematics</h1>
+                <p class="auth-subtitle">Войдите, чтобы сохранить параметры onboarding и получить персональный план в Mini App.</p>
+                <p id="telegram-context" class="auth-subtitle"></p>
+                <p id="telegram-auth-copy" class="auth-subtitle"></p>
+
+                <form id="login-form" novalidate>
+                    <div class="auth-field">
+                        <label for="email">Email</label>
+                        <input id="email" name="email" type="email" autocomplete="email" required>
+                    </div>
+
+                    <div class="auth-field">
+                        <label for="password">Пароль</label>
+                        <input id="password" name="password" type="password" autocomplete="current-password" required>
+                    </div>
+
+                    <div id="auth-error" class="auth-error" role="alert"></div>
+                    <div id="auth-success" class="auth-success" aria-live="polite"></div>
+
+                    <button class="auth-submit" type="submit">Войти</button>
+                </form>
+
+                <p class="auth-link">Нет аккаунта? <a href="/register">Создать</a></p>
+            </section>
+        </section>
+    </main>
+
+    <script src="/assets/js/site.js?v={{ asset_version() }}"></script>
+    <script src="/assets/js/app.js?v={{ asset_version() }}"></script>
+    <script src="/assets/js/auth-page.js?v={{ asset_version() }}"></script>
+    <script src="/assets/js/auth.js?v={{ asset_version() }}"></script>
+</body>
+</html>
