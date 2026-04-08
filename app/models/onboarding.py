@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, func, text
 from sqlalchemy.orm import backref, mapped_column, relationship
 
 from app.core.database import Base
@@ -15,7 +15,7 @@ class UserOnboarding(Base):
         nullable=False,
         index=True,
     )
-    is_completed = mapped_column(Boolean, nullable=False, server_default="0")
+    is_completed = mapped_column(Boolean, nullable=False, server_default=text("false"))
     completed_at = mapped_column(DateTime(timezone=True), nullable=True)
     main_goal = mapped_column(String(64), nullable=True)
     motivation = mapped_column(String(64), nullable=True)
@@ -35,7 +35,7 @@ class UserOnboarding(Base):
     calorie_tracking = mapped_column(String(32), nullable=True)
     diet_type = mapped_column(String(32), nullable=True)
     self_image = mapped_column(String(32), nullable=True)
-    reminders_enabled = mapped_column(Boolean, nullable=False, server_default="0")
+    reminders_enabled = mapped_column(Boolean, nullable=False, server_default=text("false"))
     reminder_time_local = mapped_column(String(5), nullable=True)
     onboarding_version = mapped_column(String(32), nullable=False, server_default="v1")
     interest_tags = mapped_column(Text, nullable=True)

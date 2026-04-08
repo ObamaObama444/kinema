@@ -91,7 +91,7 @@ def upgrade() -> None:
             sa.Column("message", sa.String(length=500), nullable=False),
             sa.Column("time_local", sa.String(length=5), nullable=False),
             sa.Column("days_json", sa.Text(), nullable=True),
-            sa.Column("enabled", sa.Boolean(), server_default=sa.text("1"), nullable=False),
+            sa.Column("enabled", sa.Boolean(), server_default=sa.true(), nullable=False),
             sa.Column("timezone", sa.String(length=64), server_default=sa.text("'UTC'"), nullable=False),
             sa.Column("last_sent_at", sa.DateTime(timezone=True), nullable=True),
             sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),

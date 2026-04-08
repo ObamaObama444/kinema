@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func, text
 from sqlalchemy.orm import mapped_column, relationship
 
 from app.core.database import Base
@@ -19,7 +19,7 @@ class Notification(Base):
     action_type = mapped_column(String(64), nullable=True)
     action_label = mapped_column(String(140), nullable=True)
     action_payload = mapped_column(Text, nullable=True)
-    is_read = mapped_column(Boolean, nullable=False, default=False, server_default="0")
+    is_read = mapped_column(Boolean, nullable=False, default=False, server_default=text("false"))
     created_at = mapped_column(
         DateTime(timezone=True),
         nullable=False,
