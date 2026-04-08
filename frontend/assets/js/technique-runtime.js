@@ -2192,6 +2192,160 @@
             }
         }
 
+        var OVERLAY_LANDMARK_IDS = [
+            0,
+            LANDMARK.L_SHOULDER,
+            LANDMARK.R_SHOULDER,
+            LANDMARK.L_ELBOW,
+            LANDMARK.R_ELBOW,
+            LANDMARK.L_WRIST,
+            LANDMARK.R_WRIST,
+            LANDMARK.L_HIP,
+            LANDMARK.R_HIP,
+            LANDMARK.L_KNEE,
+            LANDMARK.R_KNEE,
+            LANDMARK.L_ANKLE,
+            LANDMARK.R_ANKLE,
+            LANDMARK.L_HEEL,
+            LANDMARK.R_HEEL,
+            LANDMARK.L_FOOT_INDEX,
+            LANDMARK.R_FOOT_INDEX
+        ];
+        var OVERLAY_LANDMARK_LOOKUP = OVERLAY_LANDMARK_IDS.reduce(function (lookup, id) {
+            lookup[id] = true;
+            return lookup;
+        }, {});
+
+        function overlayScale(width, height) {
+            return Math.max(1, Math.min(width, height) / 420);
+        }
+
+        function overlayRadius(scale, landmarkId) {
+            if (
+                landmarkId === LANDMARK.L_SHOULDER
+                || landmarkId === LANDMARK.R_SHOULDER
+                || landmarkId === LANDMARK.L_ELBOW
+                || landmarkId === LANDMARK.R_ELBOW
+                || landmarkId === LANDMARK.L_HIP
+                || landmarkId === LANDMARK.R_HIP
+                || landmarkId === LANDMARK.L_KNEE
+                || landmarkId === LANDMARK.R_KNEE
+                || landmarkId === LANDMARK.L_ANKLE
+                || landmarkId === LANDMARK.R_ANKLE
+            ) {
+                return 5.8 * scale;
+            }
+            if (landmarkId === 0) {
+                return 5.1 * scale;
+            }
+            return 4.7 * scale;
+        }
+
+        function visibleOverlayPoint(landmarks, landmarkId, width, height) {
+            var landmark = landmarks[landmarkId];
+            var visibility;
+
+            if (!landmark) {
+                return null;
+            }
+
+            visibility = typeof landmark.visibility === 'number' ? landmark.visibility : 1;
+            if (visibility < 0.35) {
+                return null;
+            }
+
+            return {
+                x: landmark.x * width,
+                y: landmark.y * height,
+                visibility: visibility
+            };
+        }
+
+        function connectionIds(connection) {
+            if (Array.isArray(connection) && connection.length >= 2) {
+                return [connection[0], connection[1]];
+            }
+            if (connection && typeof connection.start === 'number' && typeof connection.end === 'number') {
+                return [connection.start, connection.end];
+            }
+            return null;
+        }
+
+        function drawOverlayConnection(ctx, startPoint, endPoint, scale) {
+            ctx.save();
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = 'rgba(7, 24, 18, 0.58)';
+            ctx.lineWidth = 8 * scale;
+            ctx.beginPath();
+            ctx.moveTo(startPoint.x, startPoint.y);
+            ctx.lineTo(endPoint.x, endPoint.y);
+            ctx.stroke();
+
+            ctx.strokeStyle = '#1fd47d';
+            ctx.shadowColor = 'rgba(31, 212, 125, 0.34)';
+            ctx.shadowBlur = 10 * scale;
+            ctx.lineWidth = 4.8 * scale;
+            ctx.beginPath();
+            ctx.moveTo(startPoint.x, startPoint.y);
+            ctx.lineTo(endPoint.x, endPoint.y);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawOverlayLandmark(ctx, point, scale, landmarkId) {
+            var radius = overlayRadius(scale, landmarkId);
+
+            ctx.save();
+            ctx.fillStyle = 'rgba(10, 24, 18, 0.7)';
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, radius + 2.2 * scale, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#f97316';
+            ctx.shadowColor = 'rgba(249, 115, 22, 0.34)';
+            ctx.shadowBlur = 12 * scale;
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#fff7ed';
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, Math.max(1.6 * scale, radius * 0.38), 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function drawOverlaySkeleton(ctx, landmarks, width, height) {
+            var scale = overlayScale(width, height);
+
+            (window.POSE_CONNECTIONS || []).forEach(function (connection) {
+                var ids = connectionIds(connection);
+                var startPoint;
+                var endPoint;
+
+                if (!ids || !OVERLAY_LANDMARK_LOOKUP[ids[0]] || !OVERLAY_LANDMARK_LOOKUP[ids[1]]) {
+                    return;
+                }
+
+                startPoint = visibleOverlayPoint(landmarks, ids[0], width, height);
+                endPoint = visibleOverlayPoint(landmarks, ids[1], width, height);
+                if (!startPoint || !endPoint) {
+                    return;
+                }
+
+                drawOverlayConnection(ctx, startPoint, endPoint, scale);
+            });
+
+            OVERLAY_LANDMARK_IDS.forEach(function (landmarkId) {
+                var point = visibleOverlayPoint(landmarks, landmarkId, width, height);
+                if (!point) {
+                    return;
+                }
+                drawOverlayLandmark(ctx, point, scale, landmarkId);
+            });
+        }
+
         function drawOverlay(results) {
             var canvas = byId('tech-overlay');
             var video = byId('tech-video');
@@ -2223,19 +2377,7 @@
                 return;
             }
 
-            if (window.drawConnectors && window.POSE_CONNECTIONS) {
-                window.drawConnectors(ctx, results.poseLandmarks, window.POSE_CONNECTIONS, {
-                    color: '#18c96d',
-                    lineWidth: 3
-                });
-            }
-            if (window.drawLandmarks) {
-                window.drawLandmarks(ctx, results.poseLandmarks, {
-                    color: '#f97316',
-                    lineWidth: 1,
-                    radius: 3
-                });
-            }
+            drawOverlaySkeleton(ctx, results.poseLandmarks, width, height);
         }
 
         function onPoseResults(results) {
