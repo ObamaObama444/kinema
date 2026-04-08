@@ -74,6 +74,10 @@
         return site.ensureFiniteNumber(value);
     }
 
+    function parseLocalDate(value) {
+        return site.parseLocalDate(value);
+    }
+
     function displayName(profile) {
         return site.resolveDisplayName(profile);
     }

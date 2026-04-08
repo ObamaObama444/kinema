@@ -834,6 +834,18 @@
         });
     }
 
+    function parseLocalDate(value) {
+        if (value instanceof Date && !Number.isNaN(value.getTime())) {
+            return value;
+        }
+        if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+            var parts = value.split('-');
+            return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        }
+        var date = new Date(value);
+        return Number.isNaN(date.getTime()) ? new Date() : date;
+    }
+
     function formatShortDateTime(isoString) {
         var date = new Date(isoString);
         if (Number.isNaN(date.getTime())) {
@@ -926,6 +938,7 @@
         setUserShell: setUserShell,
         formatDateTime: formatDateTime,
         formatShortDateTime: formatShortDateTime,
+        parseLocalDate: parseLocalDate,
         goalTypeLabel: goalTypeLabel,
         levelLabel: levelLabel,
         getPathSegments: getPathSegments,
