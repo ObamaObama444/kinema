@@ -2193,7 +2193,6 @@
         }
 
         var OVERLAY_LANDMARK_IDS = [
-            0,
             LANDMARK.L_SHOULDER,
             LANDMARK.R_SHOULDER,
             LANDMARK.L_ELBOW,
@@ -2205,11 +2204,13 @@
             LANDMARK.L_KNEE,
             LANDMARK.R_KNEE,
             LANDMARK.L_ANKLE,
-            LANDMARK.R_ANKLE
+            LANDMARK.R_ANKLE,
+            LANDMARK.L_HEEL,
+            LANDMARK.R_HEEL,
+            LANDMARK.L_FOOT_INDEX,
+            LANDMARK.R_FOOT_INDEX
         ];
         var OVERLAY_CONNECTIONS = [
-            [0, LANDMARK.L_SHOULDER],
-            [0, LANDMARK.R_SHOULDER],
             [LANDMARK.L_SHOULDER, LANDMARK.R_SHOULDER],
             [LANDMARK.L_SHOULDER, LANDMARK.L_ELBOW],
             [LANDMARK.L_ELBOW, LANDMARK.L_WRIST],
@@ -2221,7 +2222,11 @@
             [LANDMARK.L_HIP, LANDMARK.L_KNEE],
             [LANDMARK.L_KNEE, LANDMARK.L_ANKLE],
             [LANDMARK.R_HIP, LANDMARK.R_KNEE],
-            [LANDMARK.R_KNEE, LANDMARK.R_ANKLE]
+            [LANDMARK.R_KNEE, LANDMARK.R_ANKLE],
+            [LANDMARK.L_ANKLE, LANDMARK.L_HEEL],
+            [LANDMARK.L_HEEL, LANDMARK.L_FOOT_INDEX],
+            [LANDMARK.R_ANKLE, LANDMARK.R_HEEL],
+            [LANDMARK.R_HEEL, LANDMARK.R_FOOT_INDEX]
         ];
         var OVERLAY_MAJOR_JOINTS = [
             LANDMARK.L_SHOULDER,
@@ -2246,7 +2251,19 @@
             LANDMARK.R_WRIST,
             LANDMARK.L_ANKLE,
             LANDMARK.R_ANKLE
-        ];
+        ].reduce(function (lookup, id) {
+            lookup[id] = true;
+            return lookup;
+        }, {});
+        var OVERLAY_FOOT_JOINTS = [
+            LANDMARK.L_HEEL,
+            LANDMARK.R_HEEL,
+            LANDMARK.L_FOOT_INDEX,
+            LANDMARK.R_FOOT_INDEX
+        ].reduce(function (lookup, id) {
+            lookup[id] = true;
+            return lookup;
+        }, {});
         var OVERLAY_LANDMARK_LOOKUP = OVERLAY_LANDMARK_IDS.reduce(function (lookup, id) {
             lookup[id] = true;
             return lookup;
@@ -2264,12 +2281,12 @@
                 return 7.6 * scale;
             }
             if (OVERLAY_EDGE_JOINTS[landmarkId]) {
-                return 6.9 * scale;
+                return 7.8 * scale;
             }
-            if (landmarkId === 0) {
-                return 6.4 * scale;
+            if (OVERLAY_FOOT_JOINTS[landmarkId]) {
+                return 7.2 * scale;
             }
-            return 6.6 * scale;
+            return 7.1 * scale;
         }
 
         function visibleOverlayPoint(landmarks, landmarkId, width, height) {
@@ -2325,7 +2342,7 @@
             ctx.restore();
         }
 
-        function landmarkGradient(ctx, point, radius, isMajor) {
+        function landmarkGradient(ctx, point, radius, isMajor, isFoot) {
             var gradient = ctx.createRadialGradient(
                 point.x - radius * 0.35,
                 point.y - radius * 0.45,
@@ -2336,47 +2353,57 @@
             );
             var alpha = jointOpacity(point);
 
-            if (isMajor) {
-                gradient.addColorStop(0, 'rgba(255, 252, 235, ' + alpha + ')');
-                gradient.addColorStop(0.46, 'rgba(253, 224, 71, ' + alpha + ')');
-                gradient.addColorStop(1, 'rgba(245, 158, 11, ' + (0.96 * alpha) + ')');
+            if (isFoot) {
+                gradient.addColorStop(0, 'rgba(255, 255, 255, ' + alpha + ')');
+                gradient.addColorStop(0.5, 'rgba(214, 244, 255, ' + alpha + ')');
+                gradient.addColorStop(1, 'rgba(121, 210, 255, ' + (0.96 * alpha) + ')');
                 return gradient;
             }
 
-            gradient.addColorStop(0, 'rgba(255, 252, 235, ' + alpha + ')');
-            gradient.addColorStop(0.55, 'rgba(250, 204, 21, ' + alpha + ')');
-            gradient.addColorStop(1, 'rgba(217, 119, 6, ' + (0.94 * alpha) + ')');
+            if (isMajor) {
+                gradient.addColorStop(0, 'rgba(255, 255, 255, ' + alpha + ')');
+                gradient.addColorStop(0.48, 'rgba(226, 248, 255, ' + alpha + ')');
+                gradient.addColorStop(1, 'rgba(136, 219, 255, ' + (0.96 * alpha) + ')');
+                return gradient;
+            }
+
+            gradient.addColorStop(0, 'rgba(255, 255, 255, ' + alpha + ')');
+            gradient.addColorStop(0.56, 'rgba(232, 248, 255, ' + alpha + ')');
+            gradient.addColorStop(1, 'rgba(160, 226, 255, ' + (0.94 * alpha) + ')');
             return gradient;
         }
 
         function drawOverlayLandmark(ctx, point, scale, landmarkId) {
             var radius = overlayRadius(scale, landmarkId);
             var isMajor = !!OVERLAY_MAJOR_JOINTS[landmarkId];
+            var isFoot = !!OVERLAY_FOOT_JOINTS[landmarkId];
             var ringRadius = Math.max(3.6 * scale, radius - 1.35 * scale);
             var alpha = jointOpacity(point);
 
             ctx.save();
-            ctx.fillStyle = 'rgba(7, 17, 28, ' + (0.72 * alpha) + ')';
+            ctx.fillStyle = 'rgba(8, 20, 32, ' + (0.76 * alpha) + ')';
             ctx.beginPath();
-            ctx.arc(point.x, point.y, radius + 3.9 * scale, 0, Math.PI * 2);
+            ctx.arc(point.x, point.y, radius + 4.4 * scale, 0, Math.PI * 2);
             ctx.fill();
 
-            ctx.fillStyle = landmarkGradient(ctx, point, radius, isMajor);
-            ctx.shadowColor = 'rgba(251, 191, 36, ' + (0.42 * alpha) + ')';
-            ctx.shadowBlur = 18 * scale;
+            ctx.fillStyle = landmarkGradient(ctx, point, radius, isMajor, isFoot);
+            ctx.shadowColor = isFoot
+                ? ('rgba(121, 210, 255, ' + (0.38 * alpha) + ')')
+                : ('rgba(160, 226, 255, ' + (0.34 * alpha) + ')');
+            ctx.shadowBlur = 16 * scale;
             ctx.beginPath();
             ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
             ctx.fill();
 
-            ctx.strokeStyle = 'rgba(255, 247, 214, ' + (0.95 * alpha) + ')';
-            ctx.lineWidth = 1.9 * scale;
+            ctx.strokeStyle = 'rgba(245, 252, 255, ' + (0.96 * alpha) + ')';
+            ctx.lineWidth = 2 * scale;
             ctx.beginPath();
             ctx.arc(point.x, point.y, ringRadius, 0, Math.PI * 2);
             ctx.stroke();
 
-            ctx.fillStyle = 'rgba(255, 252, 240, ' + (0.95 * alpha) + ')';
+            ctx.fillStyle = 'rgba(248, 253, 255, ' + (0.98 * alpha) + ')';
             ctx.beginPath();
-            ctx.arc(point.x, point.y, Math.max(2.4 * scale, radius * (isMajor ? 0.35 : 0.3)), 0, Math.PI * 2);
+            ctx.arc(point.x, point.y, Math.max(2.8 * scale, radius * (isMajor ? 0.38 : 0.33)), 0, Math.PI * 2);
             ctx.fill();
             ctx.restore();
         }
