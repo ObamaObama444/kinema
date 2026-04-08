@@ -2205,11 +2205,47 @@
             LANDMARK.L_KNEE,
             LANDMARK.R_KNEE,
             LANDMARK.L_ANKLE,
-            LANDMARK.R_ANKLE,
-            LANDMARK.L_HEEL,
-            LANDMARK.R_HEEL,
-            LANDMARK.L_FOOT_INDEX,
-            LANDMARK.R_FOOT_INDEX
+            LANDMARK.R_ANKLE
+        ];
+        var OVERLAY_CONNECTIONS = [
+            [0, LANDMARK.L_SHOULDER],
+            [0, LANDMARK.R_SHOULDER],
+            [LANDMARK.L_SHOULDER, LANDMARK.R_SHOULDER],
+            [LANDMARK.L_SHOULDER, LANDMARK.L_ELBOW],
+            [LANDMARK.L_ELBOW, LANDMARK.L_WRIST],
+            [LANDMARK.R_SHOULDER, LANDMARK.R_ELBOW],
+            [LANDMARK.R_ELBOW, LANDMARK.R_WRIST],
+            [LANDMARK.L_SHOULDER, LANDMARK.L_HIP],
+            [LANDMARK.R_SHOULDER, LANDMARK.R_HIP],
+            [LANDMARK.L_HIP, LANDMARK.R_HIP],
+            [LANDMARK.L_HIP, LANDMARK.L_KNEE],
+            [LANDMARK.L_KNEE, LANDMARK.L_ANKLE],
+            [LANDMARK.R_HIP, LANDMARK.R_KNEE],
+            [LANDMARK.R_KNEE, LANDMARK.R_ANKLE]
+        ];
+        var OVERLAY_MAJOR_JOINTS = [
+            LANDMARK.L_SHOULDER,
+            LANDMARK.R_SHOULDER,
+            LANDMARK.L_HIP,
+            LANDMARK.R_HIP
+        ].reduce(function (lookup, id) {
+            lookup[id] = true;
+            return lookup;
+        }, {});
+        var OVERLAY_MID_JOINTS = [
+            LANDMARK.L_ELBOW,
+            LANDMARK.R_ELBOW,
+            LANDMARK.L_KNEE,
+            LANDMARK.R_KNEE
+        ].reduce(function (lookup, id) {
+            lookup[id] = true;
+            return lookup;
+        }, {});
+        var OVERLAY_EDGE_JOINTS = [
+            LANDMARK.L_WRIST,
+            LANDMARK.R_WRIST,
+            LANDMARK.L_ANKLE,
+            LANDMARK.R_ANKLE
         ];
         var OVERLAY_LANDMARK_LOOKUP = OVERLAY_LANDMARK_IDS.reduce(function (lookup, id) {
             lookup[id] = true;
@@ -2221,24 +2257,19 @@
         }
 
         function overlayRadius(scale, landmarkId) {
-            if (
-                landmarkId === LANDMARK.L_SHOULDER
-                || landmarkId === LANDMARK.R_SHOULDER
-                || landmarkId === LANDMARK.L_ELBOW
-                || landmarkId === LANDMARK.R_ELBOW
-                || landmarkId === LANDMARK.L_HIP
-                || landmarkId === LANDMARK.R_HIP
-                || landmarkId === LANDMARK.L_KNEE
-                || landmarkId === LANDMARK.R_KNEE
-                || landmarkId === LANDMARK.L_ANKLE
-                || landmarkId === LANDMARK.R_ANKLE
-            ) {
-                return 8.8 * scale;
+            if (OVERLAY_MAJOR_JOINTS[landmarkId]) {
+                return 8.6 * scale;
+            }
+            if (OVERLAY_MID_JOINTS[landmarkId]) {
+                return 7.6 * scale;
+            }
+            if (OVERLAY_EDGE_JOINTS[landmarkId]) {
+                return 6.9 * scale;
             }
             if (landmarkId === 0) {
-                return 8.1 * scale;
+                return 6.4 * scale;
             }
-            return 7.2 * scale;
+            return 6.6 * scale;
         }
 
         function visibleOverlayPoint(landmarks, landmarkId, width, height) {
@@ -2261,31 +2292,32 @@
             };
         }
 
-        function connectionIds(connection) {
-            if (Array.isArray(connection) && connection.length >= 2) {
-                return [connection[0], connection[1]];
-            }
-            if (connection && typeof connection.start === 'number' && typeof connection.end === 'number') {
-                return [connection.start, connection.end];
-            }
-            return null;
+        function jointOpacity(point) {
+            return Math.max(0.5, Math.min(1, point.visibility || 1));
         }
 
         function drawOverlayConnection(ctx, startPoint, endPoint, scale) {
+            var gradient = ctx.createLinearGradient(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
+            var alpha = Math.min(jointOpacity(startPoint), jointOpacity(endPoint));
+
+            gradient.addColorStop(0, 'rgba(226, 255, 242, ' + (0.92 * alpha) + ')');
+            gradient.addColorStop(0.5, 'rgba(52, 211, 153, ' + (0.94 * alpha) + ')');
+            gradient.addColorStop(1, 'rgba(16, 185, 129, ' + (0.88 * alpha) + ')');
+
             ctx.save();
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
-            ctx.strokeStyle = 'rgba(7, 24, 18, 0.58)';
-            ctx.lineWidth = 8 * scale;
+            ctx.strokeStyle = 'rgba(4, 16, 18, ' + (0.5 * alpha) + ')';
+            ctx.lineWidth = 8.5 * scale;
             ctx.beginPath();
             ctx.moveTo(startPoint.x, startPoint.y);
             ctx.lineTo(endPoint.x, endPoint.y);
             ctx.stroke();
 
-            ctx.strokeStyle = '#1fd47d';
-            ctx.shadowColor = 'rgba(31, 212, 125, 0.34)';
-            ctx.shadowBlur = 10 * scale;
-            ctx.lineWidth = 4.8 * scale;
+            ctx.strokeStyle = gradient;
+            ctx.shadowColor = 'rgba(52, 211, 153, ' + (0.26 * alpha) + ')';
+            ctx.shadowBlur = 12 * scale;
+            ctx.lineWidth = 5 * scale;
             ctx.beginPath();
             ctx.moveTo(startPoint.x, startPoint.y);
             ctx.lineTo(endPoint.x, endPoint.y);
@@ -2293,31 +2325,58 @@
             ctx.restore();
         }
 
+        function landmarkGradient(ctx, point, radius, isMajor) {
+            var gradient = ctx.createRadialGradient(
+                point.x - radius * 0.35,
+                point.y - radius * 0.45,
+                radius * 0.18,
+                point.x,
+                point.y,
+                radius
+            );
+            var alpha = jointOpacity(point);
+
+            if (isMajor) {
+                gradient.addColorStop(0, 'rgba(255, 252, 235, ' + alpha + ')');
+                gradient.addColorStop(0.46, 'rgba(253, 224, 71, ' + alpha + ')');
+                gradient.addColorStop(1, 'rgba(245, 158, 11, ' + (0.96 * alpha) + ')');
+                return gradient;
+            }
+
+            gradient.addColorStop(0, 'rgba(255, 252, 235, ' + alpha + ')');
+            gradient.addColorStop(0.55, 'rgba(250, 204, 21, ' + alpha + ')');
+            gradient.addColorStop(1, 'rgba(217, 119, 6, ' + (0.94 * alpha) + ')');
+            return gradient;
+        }
+
         function drawOverlayLandmark(ctx, point, scale, landmarkId) {
             var radius = overlayRadius(scale, landmarkId);
+            var isMajor = !!OVERLAY_MAJOR_JOINTS[landmarkId];
+            var ringRadius = Math.max(3.6 * scale, radius - 1.35 * scale);
+            var alpha = jointOpacity(point);
 
             ctx.save();
-            ctx.fillStyle = 'rgba(7, 20, 34, 0.74)';
+            ctx.fillStyle = 'rgba(7, 17, 28, ' + (0.72 * alpha) + ')';
             ctx.beginPath();
-            ctx.arc(point.x, point.y, radius + 3.6 * scale, 0, Math.PI * 2);
+            ctx.arc(point.x, point.y, radius + 3.9 * scale, 0, Math.PI * 2);
             ctx.fill();
 
-            ctx.fillStyle = '#59d7ff';
-            ctx.shadowColor = 'rgba(89, 215, 255, 0.42)';
+            ctx.fillStyle = landmarkGradient(ctx, point, radius, isMajor);
+            ctx.shadowColor = 'rgba(251, 191, 36, ' + (0.42 * alpha) + ')';
             ctx.shadowBlur = 18 * scale;
             ctx.beginPath();
             ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
             ctx.fill();
 
-            ctx.strokeStyle = 'rgba(235, 250, 255, 0.96)';
-            ctx.lineWidth = 1.7 * scale;
+            ctx.strokeStyle = 'rgba(255, 247, 214, ' + (0.95 * alpha) + ')';
+            ctx.lineWidth = 1.9 * scale;
             ctx.beginPath();
-            ctx.arc(point.x, point.y, Math.max(2.8 * scale, radius - 1.6 * scale), 0, Math.PI * 2);
+            ctx.arc(point.x, point.y, ringRadius, 0, Math.PI * 2);
             ctx.stroke();
 
-            ctx.fillStyle = '#effbff';
+            ctx.fillStyle = 'rgba(255, 252, 240, ' + (0.95 * alpha) + ')';
             ctx.beginPath();
-            ctx.arc(point.x, point.y, Math.max(2.6 * scale, radius * 0.44), 0, Math.PI * 2);
+            ctx.arc(point.x, point.y, Math.max(2.4 * scale, radius * (isMajor ? 0.35 : 0.3)), 0, Math.PI * 2);
             ctx.fill();
             ctx.restore();
         }
@@ -2325,14 +2384,9 @@
         function drawOverlaySkeleton(ctx, landmarks, width, height) {
             var scale = overlayScale(width, height);
 
-            (window.POSE_CONNECTIONS || []).forEach(function (connection) {
-                var ids = connectionIds(connection);
+            OVERLAY_CONNECTIONS.forEach(function (ids) {
                 var startPoint;
                 var endPoint;
-
-                if (!ids || !OVERLAY_LANDMARK_LOOKUP[ids[0]] || !OVERLAY_LANDMARK_LOOKUP[ids[1]]) {
-                    return;
-                }
 
                 startPoint = visibleOverlayPoint(landmarks, ids[0], width, height);
                 endPoint = visibleOverlayPoint(landmarks, ids[1], width, height);
