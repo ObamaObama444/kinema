@@ -2233,12 +2233,12 @@
                 || landmarkId === LANDMARK.L_ANKLE
                 || landmarkId === LANDMARK.R_ANKLE
             ) {
-                return 5.8 * scale;
+                return 8.8 * scale;
             }
             if (landmarkId === 0) {
-                return 5.1 * scale;
+                return 8.1 * scale;
             }
-            return 4.7 * scale;
+            return 7.2 * scale;
         }
 
         function visibleOverlayPoint(landmarks, landmarkId, width, height) {
@@ -2297,21 +2297,27 @@
             var radius = overlayRadius(scale, landmarkId);
 
             ctx.save();
-            ctx.fillStyle = 'rgba(10, 24, 18, 0.7)';
+            ctx.fillStyle = 'rgba(7, 20, 34, 0.74)';
             ctx.beginPath();
-            ctx.arc(point.x, point.y, radius + 2.2 * scale, 0, Math.PI * 2);
+            ctx.arc(point.x, point.y, radius + 3.6 * scale, 0, Math.PI * 2);
             ctx.fill();
 
-            ctx.fillStyle = '#f97316';
-            ctx.shadowColor = 'rgba(249, 115, 22, 0.34)';
-            ctx.shadowBlur = 12 * scale;
+            ctx.fillStyle = '#59d7ff';
+            ctx.shadowColor = 'rgba(89, 215, 255, 0.42)';
+            ctx.shadowBlur = 18 * scale;
             ctx.beginPath();
             ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
             ctx.fill();
 
-            ctx.fillStyle = '#fff7ed';
+            ctx.strokeStyle = 'rgba(235, 250, 255, 0.96)';
+            ctx.lineWidth = 1.7 * scale;
             ctx.beginPath();
-            ctx.arc(point.x, point.y, Math.max(1.6 * scale, radius * 0.38), 0, Math.PI * 2);
+            ctx.arc(point.x, point.y, Math.max(2.8 * scale, radius - 1.6 * scale), 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.fillStyle = '#effbff';
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, Math.max(2.6 * scale, radius * 0.44), 0, Math.PI * 2);
             ctx.fill();
             ctx.restore();
         }
