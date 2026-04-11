@@ -1,7 +1,8 @@
 (function () {
     var site = window.KinematicsSite;
     var activeRouteToken = 0;
-    var PICKER_ITEM_HEIGHT = 58;
+    var DEFAULT_PICKER_ITEM_HEIGHT = 58;
+    var BLOOD_PRESSURE_UNIT = 'mmHg';
     var state = {
         profile: null,
         summary: null,
@@ -333,12 +334,12 @@
     function renderBloodPressureCard(summary) {
         return [
             '<article class="records-card records-card-vital records-card-pressure">',
-            '<div class="records-card-head"><h2>Кровяное Давление</h2></div>',
+            '<div class="records-card-head"><h2>Давление</h2></div>',
             '<div class="records-vital-value records-vital-value-pressure">',
             summary.latest_systolic == null || summary.latest_diastolic == null
                 ? '—/—'
                 : site.escapeHtml(String(summary.latest_systolic)) + '/' + site.escapeHtml(String(summary.latest_diastolic)),
-            '<span>мм рт. ст.</span>',
+            '<span>' + BLOOD_PRESSURE_UNIT + '</span>',
             '</div>',
             renderBloodPressureChart(summary.blood_pressure_points),
             '<button class="records-vital-button" type="button" data-open-pressure-sheet>ЗАПИСАТЬ</button>',
@@ -425,8 +426,8 @@
             '<div class="records-sheet-handle" aria-hidden="true"></div>',
             '<div class="records-picker-top"><span></span><button class="records-picker-cancel" type="button" data-close-sheet>Отмена</button></div>',
             '<div class="records-picker-grid records-picker-grid-double">',
-            renderPickerColumn('СИСТОЛИЧЕСКОЕ', 'мм рт. ст.', sheet.systolic, 'systolic', 60, 240),
-            renderPickerColumn('ДИАСТОЛИЧЕСКОЕ', 'мм рт. ст.', sheet.diastolic, 'diastolic', 40, 180),
+            renderPickerColumn('СИСТОЛИЧЕСКОЕ', BLOOD_PRESSURE_UNIT, sheet.systolic, 'systolic', 60, 240),
+            renderPickerColumn('ДИАСТОЛИЧЕСКОЕ', BLOOD_PRESSURE_UNIT, sheet.diastolic, 'diastolic', 40, 180),
             '</div>',
             renderQuickSheetNotice(sheet),
             '<button class="records-sheet-save" type="button" data-save-sheet', sheet.saving ? ' disabled' : '', '>СОХРАНИТЬ</button>',
@@ -601,11 +602,24 @@
         rerender();
     }
 
+    function pickerItemHeight(scroller) {
+        var sampleItem = scroller ? scroller.querySelector('.records-picker-value') : null;
+        var measuredHeight;
+
+        if (!sampleItem) {
+            return DEFAULT_PICKER_ITEM_HEIGHT;
+        }
+
+        measuredHeight = Math.round(sampleItem.getBoundingClientRect().height || 0);
+        return measuredHeight > 0 ? measuredHeight : DEFAULT_PICKER_ITEM_HEIGHT;
+    }
+
     function syncSinglePickerScroller(scroller) {
         var kind = scroller.getAttribute('data-picker-wheel') || '';
         var bounds = pickerBounds(kind);
         var current = pickerValue(kind);
-        var targetTop = (current - bounds.min) * PICKER_ITEM_HEIGHT;
+        var itemHeight = pickerItemHeight(scroller);
+        var targetTop = (current - bounds.min) * itemHeight;
 
         if (Math.abs(scroller.scrollTop - targetTop) > 1) {
             scroller.scrollTop = targetTop;
@@ -634,6 +648,7 @@
             scroller.addEventListener('scroll', function () {
                 var kind = scroller.getAttribute('data-picker-wheel') || '';
                 var bounds = pickerBounds(kind);
+                var itemHeight = pickerItemHeight(scroller);
 
                 if (scroller.__pickerTimer) {
                     window.clearTimeout(scroller.__pickerTimer);
@@ -641,7 +656,7 @@
 
                 scroller.__pickerTimer = window.setTimeout(function () {
                     var nextValue = clamp(
-                        bounds.min + Math.round(scroller.scrollTop / PICKER_ITEM_HEIGHT),
+                        bounds.min + Math.round(scroller.scrollTop / itemHeight),
                         bounds.min,
                         bounds.max
                     );
