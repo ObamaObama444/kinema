@@ -8659,3 +8659,96 @@ body[data-view="technique-session"] .surface-card {
         margin-left: 0;
     }
 }
+
+/* Golos Text needs softer weights and less tracking than the previous fonts. */
+body[data-page] {
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+}
+
+body[data-page] .mobile-app-shell,
+body[data-page] .mobile-app-shell * {
+    letter-spacing: normal;
+}
+
+body[data-page] .mobile-app-shell p,
+body[data-page] .mobile-app-shell span,
+body[data-page] .mobile-app-shell small,
+body[data-page] .mobile-app-shell label,
+body[data-page] .mobile-app-shell input,
+body[data-page] .mobile-app-shell select,
+body[data-page] .mobile-app-shell textarea {
+    font-weight: 500;
+}
+
+body[data-page] .mobile-app-shell h1,
+body[data-page] .mobile-app-shell h2,
+body[data-page] .mobile-app-shell h3,
+body[data-page] .mobile-header-title,
+body[data-page] .hero-title,
+body[data-page] .favorites-page-head h1,
+body[data-page] .me-identity-copy h1,
+body[data-page] .records-screen-copy h1 {
+    font-weight: 700;
+    line-height: 1.08;
+    letter-spacing: -0.012em;
+}
+
+body[data-page] .mobile-header-kicker,
+body[data-page] .section-kicker,
+body[data-page] .hero-kicker,
+body[data-page] .reminders-kicker {
+    font-weight: 700;
+    letter-spacing: 0.08em;
+}
+
+body[data-page] .mobile-app-shell button,
+body[data-page] .mobile-app-shell strong,
+body[data-page] .primary-pill-btn,
+body[data-page] .secondary-pill-btn,
+body[data-page] .danger-pill-btn,
+body[data-page] .records-vital-button,
+body[data-page] .records-sheet-save,
+body[data-page] .reminders-primary-btn,
+body[data-page] .reminders-secondary-btn,
+body[data-page] .reminders-danger-btn,
+body[data-page] .reminders-status,
+body[data-page] .reminders-meta-row span,
+body[data-page] .meta-pill {
+    font-weight: 700;
+}
+
+body[data-page] .records-card h2,
+body[data-page] .records-screen-copy p,
+body[data-page] .records-goal-meta,
+body[data-page] .records-water-progress-total,
+body[data-page] .records-open-link,
+body[data-page] .records-sheet-title,
+body[data-page] .records-sheet-note,
+body[data-page] .records-picker-column-head h4,
+body[data-page] .me-card-title,
+body[data-page] .me-calendar-title,
+body[data-page] .reminders-card h3,
+body[data-page] .profile-sheet-title,
+body[data-page] .profile-sheet-label,
+body[data-page] .profile-sync-title,
+body[data-page] .settings-sheet-title {
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+body[data-page] .records-vital-value,
+body[data-page] .records-goal-arc-center strong,
+body[data-page] .records-picker-value,
+body[data-page] .records-picker-value-current,
+body[data-page] .me-weight-current strong,
+body[data-page] .profile-metric-value strong,
+body[data-page] .frequency-display-number,
+body[data-page] .mobile-dock-number-mark {
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+body[data-page] .records-vital-value {
+    gap: 0.32rem;
+}
