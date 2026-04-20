@@ -12,16 +12,16 @@
             return;
         }
         if (!state.reminders.length) {
-            list.innerHTML = '<div class="glass-card empty-card">Пока нет правил. Создайте первое напоминание ниже.</div>';
+            list.innerHTML = '<div class="reminders-card reminders-empty">Пока нет правил. Создайте первое напоминание ниже.</div>';
             return;
         }
         list.innerHTML = state.reminders.map(function (item) {
             return [
-                '<article class="glass-card reminder-item-card">',
-                '<div class="card-head-row"><div><span class="section-kicker">', site.escapeHtml(item.kind), '</span><h3>', site.escapeHtml(item.title), '</h3></div><span class="meta-pill ', item.status === 'needs_link' ? '' : 'is-accent', '">', item.status === 'needs_link' ? 'Нужен link' : (item.enabled ? 'Активно' : 'Выключено'), '</span></div>',
-                '<p class="muted-text">', site.escapeHtml(item.message), '</p>',
-                '<div class="program-meta-row"><span class="meta-pill">', site.escapeHtml(item.time_local), '</span><span class="meta-pill">', item.days.length ? site.escapeHtml(item.days.join(', ')) : 'ежедневно', '</span></div>',
-                '<div class="card-actions-row"><button class="secondary-pill-btn" type="button" data-reminder-toggle="', item.id, '" data-reminder-enabled="', item.enabled ? '1' : '0', '">', item.enabled ? 'Выключить' : 'Включить', '</button><button class="danger-pill-btn" type="button" data-reminder-delete="', item.id, '">Удалить</button></div>',
+                '<article class="reminders-card reminder-item-card">',
+                '<div class="reminders-card-head"><div><span class="reminders-kicker">', site.escapeHtml(item.kind), '</span><h3>', site.escapeHtml(item.title), '</h3></div><span class="reminders-status ', item.status === 'needs_link' ? '' : 'is-accent', '">', item.status === 'needs_link' ? 'Нужен Telegram' : (item.enabled ? 'Активно' : 'Выключено'), '</span></div>',
+                '<p class="reminders-text">', site.escapeHtml(item.message), '</p>',
+                '<div class="reminders-meta-row"><span>', site.escapeHtml(item.time_local), '</span><span>', item.days.length ? site.escapeHtml(item.days.join(', ')) : 'ежедневно', '</span></div>',
+                '<div class="reminders-actions"><button class="reminders-secondary-btn" type="button" data-reminder-toggle="', item.id, '" data-reminder-enabled="', item.enabled ? '1' : '0', '">', item.enabled ? 'Выключить' : 'Включить', '</button><button class="reminders-danger-btn" type="button" data-reminder-delete="', item.id, '">Удалить</button></div>',
                 '</article>'
             ].join('');
         }).join('');
@@ -61,27 +61,29 @@
         var root = document.getElementById('page-root');
         var normalizedSettings = site.normalizeSettings(state.settings);
         root.innerHTML = [
-            '<section class="glass-card">',
-            '<span class="section-kicker">Напоминания</span>',
-            '<h3>Telegram delivery</h3>',
-            '<p class="muted-text">', normalizedSettings.telegram_linked ? 'Аккаунт Telegram привязан. Напоминания будут уходить прямо в бот.' : 'Сначала откройте mini app из Telegram и дайте ему привязать ваш аккаунт.', '</p>',
-            normalizedSettings.telegram_bot_username ? '<p class="muted-text">Бот: @' + site.escapeHtml(normalizedSettings.telegram_bot_username) + '</p>' : '',
+            '<section class="reminders-screen">',
+            '<section class="reminders-card reminders-telegram-card">',
+            '<span class="reminders-kicker">Напоминания</span>',
+            '<h3>Telegram доставка</h3>',
+            '<p class="reminders-text">', normalizedSettings.telegram_linked ? 'Аккаунт Telegram привязан. Напоминания будут уходить прямо в бот.' : 'Откройте mini app из Telegram, чтобы привязать аккаунт для уведомлений.', '</p>',
+            normalizedSettings.telegram_bot_username ? '<p class="reminders-bot">Бот: @' + site.escapeHtml(normalizedSettings.telegram_bot_username) + '</p>' : '',
             '</section>',
-            '<section class="glass-card">',
-            '<span class="section-kicker">Новое правило</span>',
-            '<form id="reminder-form" class="stack-form" novalidate>',
-            '<label class="field"><span>Тип</span><select id="reminder-kind"><option value="workout">workout</option><option value="water">water</option><option value="custom">custom</option></select></label>',
-            '<label class="field"><span>Заголовок</span><input id="reminder-title" type="text" maxlength="140" placeholder="Например: Тренировка"></label>',
-            '<label class="field"><span>Сообщение</span><textarea id="reminder-message-input" class="textarea-field" maxlength="500" placeholder="Текст, который бот отправит в Telegram"></textarea></label>',
-            '<label class="field"><span>Время</span><input id="reminder-time" type="time" value="07:30"></label>',
-            '<div class="week-planner-row">',
+            '<section class="reminders-card reminders-form-card">',
+            '<span class="reminders-kicker">Новое правило</span>',
+            '<form id="reminder-form" class="reminders-form" novalidate>',
+            '<label class="reminders-field"><span>Тип</span><select id="reminder-kind"><option value="workout">workout</option><option value="water">water</option><option value="custom">custom</option></select></label>',
+            '<label class="reminders-field"><span>Заголовок</span><input id="reminder-title" type="text" maxlength="140" placeholder="Например: Тренировка"></label>',
+            '<label class="reminders-field"><span>Сообщение</span><textarea id="reminder-message-input" maxlength="500" placeholder="Текст, который бот отправит в Telegram"></textarea></label>',
+            '<label class="reminders-field"><span>Время</span><input id="reminder-time" type="time" value="07:30"></label>',
+            '<div class="reminders-days">',
             dayChip('Пн', 'mon', false), dayChip('Вт', 'tue', false), dayChip('Ср', 'wed', false), dayChip('Чт', 'thu', false), dayChip('Пт', 'fri', false), dayChip('Сб', 'sat', false), dayChip('Вс', 'sun', false),
             '</div>',
-            '<button class="primary-pill-btn" type="submit">Сохранить правило</button>',
+            '<button class="reminders-primary-btn" type="submit">Сохранить правило</button>',
             '</form>',
             '<p id="reminders-message" class="inline-message" aria-live="polite"></p>',
             '</section>',
-            '<section id="reminders-list" class="stack-grid"></section>'
+            '<section id="reminders-list" class="reminders-list"></section>',
+            '</section>'
         ].join('');
 
         var selectedDays = [];

@@ -2,7 +2,7 @@
     var site = window.KinematicsSite;
     var activeRouteToken = 0;
     var DEFAULT_PICKER_ITEM_HEIGHT = 58;
-    var BLOOD_PRESSURE_UNIT = 'мм рт. ст.';
+    var BLOOD_PRESSURE_UNIT = '';
     var state = {
         profile: null,
         summary: null,
@@ -339,7 +339,7 @@
             summary.latest_systolic == null || summary.latest_diastolic == null
                 ? '—/—'
                 : site.escapeHtml(String(summary.latest_systolic)) + '/' + site.escapeHtml(String(summary.latest_diastolic)),
-            '<span>' + BLOOD_PRESSURE_UNIT + '</span>',
+            BLOOD_PRESSURE_UNIT ? '<span>' + BLOOD_PRESSURE_UNIT + '</span>' : '',
             '</div>',
             renderBloodPressureChart(summary.blood_pressure_points),
             '<button class="records-vital-button" type="button" data-open-pressure-sheet>ЗАПИСАТЬ</button>',
@@ -392,7 +392,7 @@
             '<div class="records-picker-column">',
             '<div class="records-picker-column-head">',
             '<h4>', title, '</h4>',
-            '<span>', unit, '</span>',
+            unit ? '<span>' + site.escapeHtml(unit) + '</span>' : '',
             '</div>',
             '<div class="records-picker-values" data-picker-wheel="', kind, '" data-picker-min="', min, '" data-picker-max="', max, '" data-picker-current="', currentValue, '">',
             items.join(''),

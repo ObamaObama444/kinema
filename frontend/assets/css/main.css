@@ -1,9 +1,10 @@
-@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800&display=swap");
 @import url("/assets/css/onboarding-interview.css");
 
 :root {
-    --font-body: "Manrope", "Segoe UI", sans-serif;
-    --font-display: "Space Grotesk", "Segoe UI", sans-serif;
+    --font-body: "Golos Text", "Segoe UI", sans-serif;
+    --font-display: "Golos Text", "Segoe UI", sans-serif;
+    --font-ui: "Golos Text", "Segoe UI", sans-serif;
 
     --space-1: 0.25rem;
     --space-2: 0.5rem;
@@ -2975,8 +2976,9 @@ html.app-sidebar-collapsed .sidebar-icon {
     --app-accent-soft: #dff4de;
     --app-shadow: 0 24px 50px rgba(35, 68, 40, 0.14);
     --app-shadow-soft: 0 12px 24px rgba(31, 53, 35, 0.08);
-    --font-display: "Manrope", "SF Pro Display", sans-serif;
-    --font-body: "Manrope", "SF Pro Text", sans-serif;
+    --font-display: "Golos Text", "SF Pro Display", "Segoe UI", sans-serif;
+    --font-body: "Golos Text", "SF Pro Text", "Segoe UI", sans-serif;
+    --font-ui: "Golos Text", "SF Pro Text", "Segoe UI", sans-serif;
 }
 
 html[data-theme="dark"] {
@@ -6351,13 +6353,13 @@ body.records-sheet-open .mobile-dock {
 }
 
 body[data-view="profile-hub"] {
-    background: #f4f4f6;
+    background: #eef0f2;
 }
 
 body[data-view="profile-hub"] .phone {
-    background: #f4f4f6;
-    border-color: #e5e6ea;
-    box-shadow: none;
+    background: #f1f3f4;
+    border-color: #e7e9ec;
+    box-shadow: 0 18px 40px rgba(22, 29, 25, 0.08);
 }
 
 body[data-view="profile-hub"] .phone::before,
@@ -6368,7 +6370,7 @@ body[data-view="profile-hub"] .mobile-app-shell-glow {
 
 body[data-view="profile-hub"] .mobile-app-shell {
     padding-top: 1.2rem;
-    background: #f4f4f6;
+    background: #f1f3f4;
 }
 
 body[data-view="profile-hub"] .mobile-app-main {
@@ -6805,6 +6807,251 @@ body[data-view="profile-hub"] .mobile-app-main {
 
 body[data-view="profile-hub"] .mobile-page-root {
     gap: 0;
+}
+
+body[data-view="profile-reminders"] {
+    background: #eef0f2;
+}
+
+body[data-view="profile-reminders"] .phone {
+    background: #f1f3f4;
+    border-color: #e7e9ec;
+    box-shadow: 0 18px 40px rgba(22, 29, 25, 0.08);
+}
+
+body[data-view="profile-reminders"] .phone::before,
+body[data-view="profile-reminders"] .phone::after,
+body[data-view="profile-reminders"] .mobile-app-shell-glow {
+    display: none;
+}
+
+body[data-view="profile-reminders"] .mobile-app-shell {
+    background: #f1f3f4;
+}
+
+body[data-view="profile-reminders"] .mobile-app-main {
+    max-width: 390px;
+}
+
+body[data-view="profile-reminders"] .mobile-page-root {
+    gap: 0;
+}
+
+body[data-view="profile-reminders"] .mobile-app-header {
+    padding-top: 0.15rem;
+}
+
+body[data-view="profile-reminders"] .mobile-header-kicker {
+    color: #7f8792;
+}
+
+body[data-view="profile-reminders"] .mobile-header-title {
+    color: #15171b;
+    letter-spacing: -0.07em;
+}
+
+body[data-view="profile-reminders"] .mobile-header-subtitle {
+    color: #6f7784;
+    font-weight: 600;
+}
+
+.reminders-screen {
+    display: grid;
+    gap: 0.95rem;
+    padding-bottom: 0.2rem;
+}
+
+.reminders-card {
+    display: grid;
+    gap: 0.85rem;
+    padding: 1.05rem;
+    border-radius: 1.55rem;
+    background: #fbfbfc;
+    border: 1px solid #e7e9ee;
+    color: #171a20;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.82),
+        0 14px 28px rgba(20, 27, 34, 0.06);
+}
+
+.reminders-telegram-card {
+    background:
+        radial-gradient(circle at 100% 0%, rgba(229, 232, 238, 0.75), transparent 34%),
+        #fbfbfc;
+}
+
+.reminders-kicker {
+    display: inline-flex;
+    width: fit-content;
+    color: #808995;
+    font-size: 0.72rem;
+    line-height: 1.1;
+    font-weight: 900;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
+.reminders-card h3 {
+    margin: 0;
+    color: #171a20;
+    font-size: 1.18rem;
+    line-height: 1.06;
+    font-weight: 900;
+    letter-spacing: -0.05em;
+}
+
+.reminders-text,
+.reminders-bot {
+    margin: 0;
+    color: #6d7581;
+    font-size: 0.94rem;
+    line-height: 1.45;
+    font-weight: 600;
+}
+
+.reminders-bot {
+    color: #171a20;
+    font-weight: 800;
+}
+
+.reminders-form {
+    display: grid;
+    gap: 0.78rem;
+}
+
+.reminders-field {
+    display: grid;
+    gap: 0.38rem;
+}
+
+.reminders-field span {
+    color: #7f8792;
+    font-size: 0.82rem;
+    font-weight: 800;
+}
+
+.reminders-field input,
+.reminders-field select,
+.reminders-field textarea {
+    width: 100%;
+    min-height: 3.15rem;
+    border: 1px solid #e0e3e8;
+    border-radius: 1rem;
+    background: #f7f8fa;
+    color: #171a20;
+    padding: 0 0.92rem;
+    font: inherit;
+    font-weight: 700;
+    box-sizing: border-box;
+    outline: none;
+}
+
+.reminders-field textarea {
+    min-height: 6rem;
+    padding-top: 0.9rem;
+    resize: vertical;
+}
+
+.reminders-field input:focus,
+.reminders-field select:focus,
+.reminders-field textarea:focus {
+    border-color: #bfc6d1;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(126, 137, 151, 0.12);
+}
+
+.reminders-days,
+.reminders-meta-row,
+.reminders-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.reminders-days .day-pill {
+    min-width: 2.8rem;
+    border-color: #e0e3e8;
+    background: #f7f8fa;
+    color: #6f7784;
+    padding: 0.58rem 0.7rem;
+    font-size: 0.82rem;
+}
+
+.reminders-days .day-pill.is-active {
+    background: #171a20;
+    color: #ffffff;
+    border-color: #171a20;
+}
+
+.reminders-primary-btn,
+.reminders-secondary-btn,
+.reminders-danger-btn {
+    min-height: 3.08rem;
+    border: 0;
+    border-radius: 999px;
+    padding: 0 1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font: inherit;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.reminders-primary-btn {
+    width: 100%;
+    background: #171a20;
+    color: #ffffff;
+}
+
+.reminders-secondary-btn {
+    flex: 1 1 8rem;
+    background: #eef0f3;
+    color: #171a20;
+}
+
+.reminders-danger-btn {
+    flex: 1 1 7rem;
+    background: #fff1f1;
+    color: #c64040;
+}
+
+.reminders-list {
+    display: grid;
+    gap: 0.85rem;
+}
+
+.reminders-card-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.75rem;
+    align-items: start;
+}
+
+.reminders-status,
+.reminders-meta-row span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2rem;
+    border-radius: 999px;
+    padding: 0 0.72rem;
+    background: #eef0f3;
+    color: #7a828d;
+    font-size: 0.78rem;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.reminders-status.is-accent {
+    background: #171a20;
+    color: #ffffff;
+}
+
+.reminders-empty {
+    color: #7b8490;
+    text-align: center;
+    font-weight: 700;
+    line-height: 1.4;
 }
 
 body[data-view="profile-favorites"] {
