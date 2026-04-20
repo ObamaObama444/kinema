@@ -8752,3 +8752,52 @@ body[data-page] .mobile-dock-number-mark {
 body[data-page] .records-vital-value {
     gap: 0.32rem;
 }
+
+body[data-page] .mobile-app-shell {
+    --type-condense: 0.96;
+    font-stretch: 95%;
+}
+
+body[data-page] .mobile-header-title,
+body[data-page] .hero-title,
+body[data-page] .favorites-page-head h1,
+body[data-page] .me-identity-copy h1,
+body[data-page] .records-screen-copy h1,
+body[data-page] .records-card h2,
+body[data-page] .records-screen-copy p,
+body[data-page] .records-open-link,
+body[data-page] .records-sheet-title,
+body[data-page] .records-picker-column-head h4,
+body[data-page] .me-card-title,
+body[data-page] .me-calendar-title,
+body[data-page] .reminders-kicker,
+body[data-page] .reminders-card h3,
+body[data-page] .reminders-text,
+body[data-page] .reminders-bot,
+body[data-page] .mobile-dock-label {
+    display: inline-block;
+    transform: scaleX(var(--type-condense));
+    transform-origin: left center;
+}
+
+body[data-page] .records-vital-value,
+body[data-page] .records-goal-arc-center strong,
+body[data-page] .records-picker-value,
+body[data-page] .records-picker-value-current,
+body[data-page] .me-weight-current strong,
+body[data-page] .profile-metric-value strong,
+body[data-page] .frequency-display-number,
+body[data-page] .mobile-dock-number-mark {
+    transform: scaleX(var(--type-condense));
+    transform-origin: center;
+}
+
+body[data-page] .records-goal-arc-center strong,
+body[data-page] .records-picker-value,
+body[data-page] .records-picker-value-current,
+body[data-page] .me-weight-current strong,
+body[data-page] .profile-metric-value strong,
+body[data-page] .frequency-display-number,
+body[data-page] .mobile-dock-number-mark {
+    display: inline-block;
+}
