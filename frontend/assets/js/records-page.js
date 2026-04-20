@@ -2,7 +2,7 @@
     var site = window.KinematicsSite;
     var activeRouteToken = 0;
     var DEFAULT_PICKER_ITEM_HEIGHT = 58;
-    var BLOOD_PRESSURE_UNIT = 'mmHg';
+    var BLOOD_PRESSURE_UNIT = 'мм рт. ст.';
     var state = {
         profile: null,
         summary: null,

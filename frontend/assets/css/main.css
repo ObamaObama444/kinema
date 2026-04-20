@@ -5820,7 +5820,8 @@ body.records-sheet-open .mobile-dock {
     stroke-linecap: round;
 }
 
-.records-card-goal.is-steps .records-goal-arc-progress {
+.records-card-goal.is-steps .records-goal-arc-progress,
+.records-goal-arc.is-steps .records-goal-arc-progress {
     stroke: #69d1a8;
 }
 
