@@ -3,6 +3,14 @@
     var PUSHUP_DEMO_STORAGE_KEY = 'kinematics-pushup-demo-active-v3';
     var TECHNIQUE_VOICE_STORAGE_KEY = 'kinematics-technique-voice-v1';
     var VOICE_PRIORITY_RANK = { low: 1, med: 2, high: 3 };
+    var TECHNIQUE_CUE_AUDIO = {
+        squat: {
+            good_rep: '/assets/media/technique/squat/good_rep.mp3',
+            heel_lift: '/assets/media/technique/squat/heel_lift.mp3',
+            undersquat: '/assets/media/technique/squat/undersquat.mp3',
+            camera_side_view: '/assets/media/technique/squat/camera_side_view.mp3'
+        }
+    };
     var mountedController = null;
     var EXERCISE_CONFIG = {
         squat: {
@@ -363,7 +371,10 @@
     }
 
     function isSpeechSupported() {
-        return !!window.speechSynthesis && typeof window.SpeechSynthesisUtterance === 'function';
+        return (
+            typeof window.Audio === 'function'
+            || (!!window.speechSynthesis && typeof window.SpeechSynthesisUtterance === 'function')
+        );
     }
 
     function normalizeSpeechText(text) {
@@ -397,13 +408,122 @@
     }
 
     function cancelTechniqueVoice(state) {
-        if (!state || !state.voiceSupported || !window.speechSynthesis) {
+        if (!state || !state.voiceSupported) {
             return;
         }
         try {
-            window.speechSynthesis.cancel();
+            if (state.currentCueAudio) {
+                state.currentCueAudio.pause();
+                state.currentCueAudio.currentTime = 0;
+            }
+            if (window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+            }
         } catch (error) {
             return;
+        }
+    }
+
+    function markTechniqueCueSpoken(state, normalizedText, priority) {
+        state.lastSpokenText = normalizedText;
+        state.lastSpokenTs = Date.now();
+        state.lastSpokenPriority = priority;
+    }
+
+    function getTechniqueCueAudioUrl(state, code) {
+        var exerciseMap;
+
+        if (!state || !code) {
+            return '';
+        }
+
+        exerciseMap = TECHNIQUE_CUE_AUDIO[state.exerciseSlug] || {};
+        return exerciseMap[String(code)] || '';
+    }
+
+    function speakTechniqueCueWithBrowser(state, normalizedText, priority, interrupt) {
+        var synth;
+        var utterance;
+        var voice;
+
+        if (!window.speechSynthesis || typeof window.SpeechSynthesisUtterance !== 'function') {
+            return;
+        }
+
+        synth = window.speechSynthesis;
+        if (!synth) {
+            return;
+        }
+
+        try {
+            if (interrupt) {
+                synth.cancel();
+            } else if (synth.speaking || synth.pending) {
+                return;
+            }
+
+            utterance = new window.SpeechSynthesisUtterance(normalizedText);
+            utterance.lang = 'ru-RU';
+            utterance.rate = priority === 'high' ? 0.98 : 1.03;
+            utterance.pitch = 1.0;
+            voice = pickSpeechVoice();
+            if (voice) {
+                utterance.voice = voice;
+            }
+
+            markTechniqueCueSpoken(state, normalizedText, priority);
+            synth.speak(utterance);
+        } catch (error) {
+            return;
+        }
+    }
+
+    function speakTechniqueCueWithAudio(state, normalizedText, priority, interrupt, audioUrl) {
+        var audio;
+        var playResult;
+
+        if (!audioUrl || typeof window.Audio !== 'function') {
+            return false;
+        }
+
+        try {
+            state.cueAudioCache = state.cueAudioCache || {};
+            audio = state.cueAudioCache[audioUrl];
+            if (!audio) {
+                audio = new window.Audio(audioUrl);
+                audio.preload = 'auto';
+                state.cueAudioCache[audioUrl] = audio;
+            }
+
+            if (state.currentCueAudio && state.currentCueAudio !== audio) {
+                state.currentCueAudio.pause();
+                state.currentCueAudio.currentTime = 0;
+            } else if (state.currentCueAudio && interrupt) {
+                state.currentCueAudio.pause();
+                state.currentCueAudio.currentTime = 0;
+            }
+
+            if (window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+            }
+
+            audio.currentTime = 0;
+            state.currentCueAudio = audio;
+            playResult = audio.play();
+            if (playResult && typeof playResult.then === 'function') {
+                playResult
+                    .then(function () {
+                        markTechniqueCueSpoken(state, normalizedText, priority);
+                    })
+                    .catch(function () {
+                        speakTechniqueCueWithBrowser(state, normalizedText, priority, interrupt);
+                    });
+            } else {
+                markTechniqueCueSpoken(state, normalizedText, priority);
+            }
+            return true;
+        } catch (error) {
+            return false;
         }
     }
 
@@ -414,11 +534,10 @@
         var dedupeMs = options && Number.isFinite(Number(options.dedupeMs)) ? Number(options.dedupeMs) : 5000;
         var minGapMs = options && Number.isFinite(Number(options.minGapMs)) ? Number(options.minGapMs) : 2200;
         var interrupt = !!(options && options.interrupt);
-        var synth;
+        var code = options && options.code ? String(options.code) : '';
         var priorityRank;
         var lastPriorityRank;
-        var utterance;
-        var voice;
+        var audioUrl;
 
         if (!state || !state.voiceEnabled || !state.voiceSupported || !normalizedText) {
             return;
@@ -434,34 +553,12 @@
             return;
         }
 
-        synth = window.speechSynthesis;
-        if (!synth) {
+        audioUrl = getTechniqueCueAudioUrl(state, code);
+        if (speakTechniqueCueWithAudio(state, normalizedText, priority, interrupt, audioUrl)) {
             return;
         }
 
-        try {
-            if (interrupt || (synth.speaking && priorityRank > lastPriorityRank)) {
-                synth.cancel();
-            } else if (synth.speaking || synth.pending) {
-                return;
-            }
-
-            utterance = new window.SpeechSynthesisUtterance(normalizedText);
-            utterance.lang = 'ru-RU';
-            utterance.rate = priority === 'high' ? 0.98 : 1.03;
-            utterance.pitch = 1.0;
-            voice = pickSpeechVoice();
-            if (voice) {
-                utterance.voice = voice;
-            }
-
-            state.lastSpokenText = normalizedText;
-            state.lastSpokenTs = now;
-            state.lastSpokenPriority = priority;
-            synth.speak(utterance);
-        } catch (error) {
-            return;
-        }
+        speakTechniqueCueWithBrowser(state, normalizedText, priority, interrupt);
     }
 
     function maybeSpeakHint(state, text, tone) {
@@ -1089,7 +1186,9 @@
             voiceSupported: isSpeechSupported(),
             lastSpokenText: '',
             lastSpokenTs: 0,
-            lastSpokenPriority: 'low'
+            lastSpokenPriority: 'low',
+            cueAudioCache: {},
+            currentCueAudio: null
         };
 
         function isPushupDemoMode() {
@@ -1927,6 +2026,7 @@
                                 priority: voiceFeedback && voiceFeedback.priority
                                     ? String(voiceFeedback.priority)
                                     : String(feedback.tone || 'med'),
+                                code: voiceCode || (hintCodes.length ? String(hintCodes[0]) : ''),
                                 minGapMs: 900,
                                 dedupeMs: 2600,
                                 interrupt: true
