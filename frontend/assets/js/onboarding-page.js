@@ -1364,7 +1364,7 @@
 
     function nextButtonLabel(step) {
         if (step.key === 'splash') {
-            return state.onboarding && state.onboarding.status === 'in_progress' ? 'Продолжить' : 'НАЧАЛО';
+            return state.onboarding && state.onboarding.status === 'in_progress' ? 'Продолжить' : 'НАЧАТЬ';
         }
         if (step.key === 'coach_intro') {
             return 'НАЧАТЬ!';
@@ -1759,16 +1759,12 @@
     function renderSplash() {
         return [
             '<section class="fi-hero-screen">',
-            '<img class="fi-hero-bg" src="', escapeHtml(MEDIA.poster), '" alt="Фон фитнес-программы">',
-            '<div class="fi-hero-overlay"></div>',
             '<div class="fi-hero-copy">',
             '<div class="fi-hero-brand-block">',
             '<div class="fi-hero-brand">Kinematics</div>',
             '</div>',
             '<div class="fi-hero-actions">',
             '<button id="onboarding-start-btn" class="fi-primary-btn fi-primary-btn--hero" type="button">', escapeHtml(nextButtonLabel(getCurrentStep())), '</button>',
-            '<div class="fi-hero-footnote">Вы уже наш пользователь?</div>',
-            '<div class="fi-hero-link">Продолжить с имеющимся аккаунтом ', renderIcon('arrow-next', 'fi-inline-icon'), '</div>',
             '</div>',
             '</div>',
             '</section>'

@@ -2199,9 +2199,10 @@ body.onboarding-body .onboarding-root {
     overflow: hidden;
     border-radius: 0;
     background:
-        radial-gradient(circle at 18% 18%, rgba(243, 193, 79, 0.3), transparent 26%),
-        radial-gradient(circle at 82% 10%, rgba(29, 217, 138, 0.28), transparent 24%),
-        linear-gradient(180deg, #112019 0%, #0d1412 54%, #09100e 100%);
+        radial-gradient(circle at 18% 20%, rgba(0, 196, 106, 0.16), transparent 0 22%),
+        radial-gradient(circle at 84% 14%, rgba(0, 196, 106, 0.12), transparent 0 20%),
+        radial-gradient(circle at 50% 8%, rgba(255, 255, 255, 0.08), transparent 0 28%),
+        linear-gradient(135deg, #050608 0%, #061a10 52%, #00c46a 100%);
 }
 
 .fi-hero-screen::before,
@@ -2215,44 +2216,21 @@ body.onboarding-body .onboarding-root {
 .fi-hero-screen::before {
     z-index: 1;
     background:
-        radial-gradient(circle at 50% 8%, rgba(255, 255, 255, 0.18), transparent 28%),
-        radial-gradient(circle at 18% 72%, rgba(243, 193, 79, 0.18), transparent 24%),
-        radial-gradient(circle at 82% 38%, rgba(29, 217, 138, 0.16), transparent 26%);
-    filter: blur(10px);
+        radial-gradient(circle at 22% 72%, rgba(0, 196, 106, 0.08), transparent 0 18%),
+        radial-gradient(circle at 78% 78%, rgba(0, 196, 106, 0.06), transparent 0 22%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 24%);
+    filter: blur(14px);
 }
 
 .fi-hero-screen::after {
     z-index: 2;
     background:
-        linear-gradient(180deg, rgba(8, 10, 10, 0.14) 0%, rgba(8, 10, 10, 0.42) 46%, rgba(8, 10, 10, 0.76) 100%);
-}
-
-.fi-hero-bg,
-.fi-hero-overlay {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-}
-
-.fi-hero-bg {
-    object-fit: cover;
-    z-index: 0;
-    transform: scale(1.08);
-    filter: saturate(0.88) contrast(1.08) brightness(0.82);
-}
-
-.fi-hero-overlay {
-    background:
-        radial-gradient(circle at 50% 22%, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 26%),
-        radial-gradient(circle at 78% 14%, rgba(29, 217, 138, 0.18), rgba(29, 217, 138, 0) 22%),
-        linear-gradient(180deg, rgba(12, 14, 13, 0.06) 0%, rgba(12, 14, 13, 0.34) 56%, rgba(12, 14, 13, 0.58) 100%);
-    z-index: 3;
+        linear-gradient(180deg, rgba(4, 6, 8, 0.12) 0%, rgba(4, 6, 8, 0.38) 48%, rgba(4, 6, 8, 0.68) 100%);
 }
 
 .fi-hero-copy {
     position: relative;
-    z-index: 4;
+    z-index: 3;
     min-height: 100vh;
     display: grid;
     grid-template-rows: minmax(0, 1fr) auto;
@@ -2293,10 +2271,10 @@ body.onboarding-body .onboarding-root {
 .fi-hero-brand {
     font-family: var(--font-display);
     font-size: clamp(3.3rem, 16vw, 5.2rem);
-    font-weight: 900;
-    letter-spacing: -0.06em;
-    line-height: 0.92;
-    text-shadow: 0 20px 44px rgba(0, 0, 0, 0.36);
+    font-weight: 700;
+    letter-spacing: -0.05em;
+    line-height: 0.94;
+    text-shadow: 0 18px 36px rgba(0, 0, 0, 0.28);
 }
 
 .fi-hero-actions {
@@ -2306,41 +2284,11 @@ body.onboarding-body .onboarding-root {
     padding-top: clamp(2.4rem, 12vh, 5rem);
 }
 
-.fi-hero-footnote {
-    font-size: 0.95rem;
-    opacity: 0.88;
-    position: relative;
-}
-
-.fi-hero-footnote::before,
-.fi-hero-footnote::after {
-    content: "";
-    display: block;
-    position: absolute;
-    top: 50%;
-    width: 26%;
-    height: 1px;
-    background: rgba(255, 255, 255, 0.28);
-}
-
-.fi-hero-footnote::before { left: 0; }
-.fi-hero-footnote::after { right: 0; }
-
-.fi-hero-link {
-    font-size: 0.95rem;
-    font-weight: 600;
-    display: inline-flex;
-    gap: 0.45rem;
-    justify-content: center;
-    align-items: center;
-    opacity: 0.94;
-}
-
 .fi-primary-btn--hero {
     position: relative;
     overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 18px 36px rgba(12, 18, 15, 0.34);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 18px 36px rgba(5, 10, 8, 0.34);
 }
 
 .fi-primary-btn--hero::before {
