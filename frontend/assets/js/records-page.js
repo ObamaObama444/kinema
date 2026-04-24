@@ -323,10 +323,10 @@
             '<div class="records-card-head"><h2>Частота Пульс</h2></div>',
             '<div class="records-vital-value">',
             summary.latest_pulse_bpm == null ? '—' : site.escapeHtml(String(summary.latest_pulse_bpm)),
-            '<span>bpm</span>',
+            '<span>уд/мин</span>',
             '</div>',
             renderPulseChart(summary.pulse_points),
-            '<button class="records-vital-button" type="button" data-open-pulse-sheet>ИЗМЕРЕНИЕ</button>',
+            '<button class="records-vital-button" type="button" data-open-pulse-sheet>ЗАМЕНИТЬ</button>',
             '</article>'
         ].join('');
     }
@@ -409,7 +409,7 @@
             '<div class="records-sheet-handle" aria-hidden="true"></div>',
             '<div class="records-picker-top"><span></span><button class="records-picker-cancel" type="button" data-close-sheet>Отмена</button></div>',
             '<div class="records-picker-grid records-picker-grid-single">',
-            renderPickerColumn('ПУЛЬС', 'bpm', sheet.value, 'pulse', 30, 220),
+            renderPickerColumn('ПУЛЬС', 'уд/мин', sheet.value, 'pulse', 30, 220),
             '</div>',
             renderQuickSheetNotice(sheet),
             '<button class="records-sheet-save" type="button" data-save-sheet', sheet.saving ? ' disabled' : '', '>СОХРАНИТЬ</button>',
