@@ -4789,6 +4789,27 @@ body[data-view="plan-hub"] .mobile-dock {
     width: min(100%, 22rem);
 }
 
+.app-boot-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: grid;
+    place-items: center;
+    padding: 2rem 1.5rem;
+    background: linear-gradient(180deg, #f7f8fa 0%, #eef1f5 100%);
+    transition: opacity 180ms ease, visibility 180ms ease;
+}
+
+.app-boot-overlay.is-hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+body.page-boot-pending {
+    overflow: hidden;
+}
+
 .launcher-status-line {
     display: flex;
     align-items: center;

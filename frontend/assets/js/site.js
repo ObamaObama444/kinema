@@ -18,6 +18,7 @@
     var TELEGRAM_INIT_DATA_KEY = 'kinematics-telegram-init-data';
     var tgInstance = null;
     var telegramAuthPromise = null;
+    var pageBootObserver = null;
 
     function isSyntheticTelegramEmail(email) {
         var value = String(email || '').trim().toLowerCase();
@@ -871,6 +872,87 @@
         return window.location.pathname.split('/').filter(Boolean);
     }
 
+    function getPageBootOverlay() {
+        return document.getElementById('app-boot-overlay');
+    }
+
+    function setPageBootStatus(text) {
+        var node = document.getElementById('app-boot-status');
+        if (!node || !text) {
+            return;
+        }
+        node.textContent = String(text);
+    }
+
+    function stopPageBootWatcher() {
+        if (pageBootObserver) {
+            pageBootObserver.disconnect();
+            pageBootObserver = null;
+        }
+    }
+
+    function showPageBootOverlay(statusText) {
+        var overlay = getPageBootOverlay();
+        if (!overlay) {
+            return;
+        }
+        if (statusText) {
+            setPageBootStatus(statusText);
+        }
+        document.body.classList.add('page-boot-pending');
+        overlay.classList.remove('is-hidden');
+    }
+
+    function hidePageBootOverlay() {
+        var overlay = getPageBootOverlay();
+        stopPageBootWatcher();
+        if (!overlay) {
+            return;
+        }
+        document.body.classList.remove('page-boot-pending');
+        overlay.classList.add('is-hidden');
+    }
+
+    function pageRootIsReady() {
+        var root = document.getElementById('page-root');
+        if (!root) {
+            return false;
+        }
+        if (root.querySelector('.page-loading-hint')) {
+            return false;
+        }
+        return root.children.length > 0 || String(root.textContent || '').trim().length > 0;
+    }
+
+    function watchPageBootOverlay() {
+        var overlay = getPageBootOverlay();
+        var shellRoot = document.getElementById('app-shell-root');
+
+        if (!overlay || !document.body.getAttribute('data-page') || !shellRoot) {
+            return;
+        }
+
+        stopPageBootWatcher();
+        showPageBootOverlay('Загружаю Kinematics...');
+
+        if (pageRootIsReady()) {
+            hidePageBootOverlay();
+            return;
+        }
+
+        pageBootObserver = new window.MutationObserver(function () {
+            if (pageRootIsReady()) {
+                hidePageBootOverlay();
+            }
+        });
+
+        pageBootObserver.observe(shellRoot, {
+            childList: true,
+            subtree: true,
+            characterData: true
+        });
+    }
+
     function renderState(container, title, message, isError) {
         if (!container) {
             return;
@@ -942,6 +1024,9 @@
         goalTypeLabel: goalTypeLabel,
         levelLabel: levelLabel,
         getPathSegments: getPathSegments,
+        showPageBootOverlay: showPageBootOverlay,
+        hidePageBootOverlay: hidePageBootOverlay,
+        watchPageBootOverlay: watchPageBootOverlay,
         renderState: renderState,
         loadScript: loadScript,
         getTelegramUser: getTelegramUser,
@@ -980,5 +1065,6 @@
     document.addEventListener('DOMContentLoaded', function () {
         initTelegram();
         renderTelegramContext();
+        watchPageBootOverlay();
     });
 })();
