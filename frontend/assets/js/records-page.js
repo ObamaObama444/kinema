@@ -87,9 +87,9 @@
         var source = site.ensureObject(summary);
         return {
             local_date: source.local_date ? String(source.local_date) : '',
-            steps_goal: clamp(source.steps_goal, 0, 50000),
-            water_goal_glasses: clamp(source.water_goal_glasses, 0, 20),
-            water_consumed_glasses: clamp(source.water_consumed_glasses, 0, 20),
+            steps_goal: clamp(source.steps_goal, 0, 60000),
+            water_goal_glasses: clamp(source.water_goal_glasses, 0, 30),
+            water_consumed_glasses: clamp(source.water_consumed_glasses, 0, 30),
             latest_pulse_bpm: site.ensureFiniteNumber(source.latest_pulse_bpm),
             latest_systolic: site.ensureFiniteNumber(source.latest_systolic),
             latest_diastolic: site.ensureFiniteNumber(source.latest_diastolic),
@@ -107,11 +107,11 @@
                 unit: 'Стаканов',
                 cardValueLabel: '',
                 openLabel: 'Задать',
-                max: 12,
+                max: 30,
                 step: 1,
                 emptyDefault: 7,
                 accentClass: 'is-water',
-                noteHtml: 'Большинству людей нужно <span>8 стаканов</span><br>(≈2000 мл) в день.'
+                noteHtml: 'Один стакан - это примерно <span>200 мл</span>.<br>Для большинства ориентир - <span>8 стаканов</span> в день.'
             };
         }
 
@@ -122,7 +122,7 @@
             unit: 'Шагов',
             cardValueLabel: '',
             openLabel: 'Задать',
-            max: 30000,
+            max: 60000,
             step: 500,
             emptyDefault: 6000,
             accentClass: 'is-steps',

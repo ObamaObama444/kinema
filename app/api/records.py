@@ -126,7 +126,7 @@ def _upsert_daily_goals(
         elif int(goals.water_consumed_glasses or 0) > goals.water_goal_glasses:
             goals.water_consumed_glasses = goals.water_goal_glasses
     if water_consumed_glasses is not None:
-        max_value = max(0, int(goals.water_goal_glasses or 20))
+        max_value = max(0, int(goals.water_goal_glasses or 30))
         goals.water_consumed_glasses = min(int(water_consumed_glasses), max_value)
 
     db.add(goals)

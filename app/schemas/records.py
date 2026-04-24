@@ -4,15 +4,15 @@ from pydantic import BaseModel, Field
 
 
 class StepsGoalUpdateRequest(BaseModel):
-    value: int = Field(ge=0, le=50000)
+    value: int = Field(ge=0, le=60000)
 
 
 class WaterGoalUpdateRequest(BaseModel):
-    value: int = Field(ge=0, le=20)
+    value: int = Field(ge=0, le=30)
 
 
 class WaterIntakeUpdateRequest(BaseModel):
-    value: int = Field(ge=0, le=20)
+    value: int = Field(ge=0, le=30)
 
 
 class PulseMeasurementCreateRequest(BaseModel):
