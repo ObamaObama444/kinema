@@ -381,9 +381,6 @@ def onboarding_page(
 ) -> Response:
     if isinstance(current_user_or_redirect, RedirectResponse):
         return current_user_or_redirect
-    onboarding_redirect = _onboarding_redirect_if_needed(db, current_user_or_redirect)
-    if onboarding_redirect is None:
-        return RedirectResponse(url="/app", status_code=status.HTTP_302_FOUND)
     return templates.TemplateResponse(
         "app/onboarding.html",
         {
