@@ -2198,7 +2198,9 @@ body.onboarding-body .onboarding-root {
     position: relative;
     overflow: hidden;
     border-radius: 0;
-    background: radial-gradient(circle at right bottom, rgba(0, 196, 106, 0.95) 0%, #062414 22%, #050608 68%);
+    background:
+        radial-gradient(circle at 88% 82%, rgba(0, 196, 106, 0.98) 0%, rgba(0, 196, 106, 0.62) 18%, rgba(5, 38, 24, 0.94) 40%, #050608 72%),
+        linear-gradient(180deg, #040506 0%, #050608 100%);
 }
 
 .fi-hero-screen::before,
@@ -2211,12 +2213,15 @@ body.onboarding-body .onboarding-root {
 
 .fi-hero-screen::before {
     z-index: 1;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.018) 0%, rgba(255, 255, 255, 0) 20%);
+    background:
+        radial-gradient(circle at 78% 70%, rgba(22, 255, 152, 0.16) 0%, rgba(22, 255, 152, 0) 34%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0) 22%);
 }
 
 .fi-hero-screen::after {
     z-index: 2;
-    background: linear-gradient(180deg, rgba(4, 6, 8, 0.04) 0%, rgba(4, 6, 8, 0.18) 42%, rgba(4, 6, 8, 0.62) 100%);
+    background:
+        linear-gradient(180deg, rgba(4, 6, 8, 0.10) 0%, rgba(4, 6, 8, 0.14) 24%, rgba(4, 6, 8, 0.38) 56%, rgba(4, 6, 8, 0.58) 100%);
 }
 
 .fi-hero-copy {
