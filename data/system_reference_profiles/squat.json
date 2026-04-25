@@ -14,7 +14,14 @@
     "height": 720,
     "size_bytes": 788479,
     "sample_count": 72,
-    "trimmed": true
+    "trimmed": true,
+    "quality": {
+      "valid_frames": 19.0,
+      "primary_amplitude": 120.28833026945898,
+      "depth_amplitude": 0.1290511187826091,
+      "mean_side_view_score": 0.201021439564136,
+      "mean_asymmetry": 34.87723255268793
+    }
   },
   "reference_model": {
     "version": 1,

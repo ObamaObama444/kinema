@@ -569,6 +569,16 @@ def _published_system_profile_for_slug(db: Session, slug: str) -> ExerciseTechni
 
 def _resolved_reference_payload(db: Session, slug: str) -> dict[str, Any]:
     defaults = _technique_defaults(slug)
+    if slug == "squat":
+        return {
+            "profile_id": None,
+            "motion_family": str(defaults["motion_family"]),
+            "view_type": str(defaults["view_type"]),
+            "reference_based": False,
+            "reference_model": None,
+            "calibration_profile": None,
+        }
+
     profile = _published_system_profile_for_slug(db, slug)
     if profile is not None:
         return {
@@ -1594,9 +1604,21 @@ def compare_session_rep(
 ) -> CompareResponse:
     session = _get_owned_technique_session(db, current_user.id, session_id)
     session_slug = _session_slug(session)
-    reference_payload = _resolved_reference_payload(db, session_slug)
     frame_metrics = [item.model_dump() for item in payload.frame_metrics]
 
+    if session_slug == "squat":
+        legacy_result = compare_squat_rep(frame_metrics)
+        return CompareResponse(
+            rep_index=payload.rep_index,
+            rep_score=legacy_result.rep_score,
+            quality=legacy_result.quality,
+            errors=legacy_result.errors,
+            tips=legacy_result.tips,
+            metrics=legacy_result.metrics,
+            details=legacy_result.details,
+        )
+
+    reference_payload = _resolved_reference_payload(db, session_slug)
     if reference_payload["reference_model"] and reference_payload["calibration_profile"]:
         result = compare_generated_rep(
             frame_metrics=frame_metrics,
@@ -1613,9 +1635,7 @@ def compare_session_rep(
             details=dict(result["details"]),
         )
 
-    if session_slug == "squat":
-        legacy_result = compare_squat_rep(frame_metrics)
-    elif session_slug == "pushup":
+    if session_slug == "pushup":
         legacy_result = compare_pushup_rep(frame_metrics)
     else:
         raise HTTPException(

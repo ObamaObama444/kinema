@@ -62,9 +62,9 @@ SPECS: list[ReferenceSpec] = [
         title="Отжимания",
         motion_family="push_like",
         view_type="side",
-        source_url="https://d34w7g4gy10iej.cloudfront.net/video/1907/DOD_106997387/DOD_106997387-640x360-691k.mp4",
-        source_page_url="https://www.dvidshub.net/video/695717/depth-push-up",
-        source_label="DVIDS public domain",
+        source_url="https://www.pexels.com/download/video/4804819/",
+        source_page_url="https://www.pexels.com/video/4804819/",
+        source_label="Pexels free license",
         source_ext=".mp4",
     ),
     ReferenceSpec(
@@ -73,9 +73,9 @@ SPECS: list[ReferenceSpec] = [
         title="Выпад назад",
         motion_family="lunge_like",
         view_type="side",
-        source_url="https://d34w7g4gy10iej.cloudfront.net/video/1906/DOD_106953166/DOD_106953166.mp4",
-        source_page_url="https://www.dvidshub.net/video/692857/reverse-lunge",
-        source_label="DVIDS public domain",
+        source_url="https://www.pexels.com/download/video/8233047/",
+        source_page_url="https://www.pexels.com/video/8233047/",
+        source_label="Pexels free license",
         source_ext=".mp4",
     ),
     ReferenceSpec(
@@ -84,9 +84,9 @@ SPECS: list[ReferenceSpec] = [
         title="Ягодичный мост",
         motion_family="core_like",
         view_type="side",
-        source_url="https://d34w7g4gy10iej.cloudfront.net/video/2006/DOD_107871769/DOD_107871769-1024x576-1769k.mp4",
-        source_page_url="https://www.dvidshub.net/video/757660/one-minute-glute-bridge-challenge",
-        source_label="DVIDS public domain",
+        source_url="https://www.pexels.com/download/video/6525487/",
+        source_page_url="https://www.pexels.com/video/6525487/",
+        source_label="Pexels free license",
         source_ext=".mp4",
     ),
     ReferenceSpec(
@@ -95,9 +95,9 @@ SPECS: list[ReferenceSpec] = [
         title="Подъёмы ног лежа",
         motion_family="core_like",
         view_type="side",
-        source_url="https://d34w7g4gy10iej.cloudfront.net/video/1709/DOD_104849850/DOD_104849850-1024x576-1769k.mp4",
-        source_page_url="https://www.dvidshub.net/video/551841/supine-straight-leg-raise",
-        source_label="DVIDS public domain",
+        source_url="https://www.pexels.com/download/video/8233778/",
+        source_page_url="https://www.pexels.com/video/8233778/",
+        source_label="Pexels free license",
         source_ext=".mp4",
     ),
     ReferenceSpec(
@@ -106,9 +106,9 @@ SPECS: list[ReferenceSpec] = [
         title="Скручивания",
         motion_family="core_like",
         view_type="side",
-        source_url="https://d34w7g4gy10iej.cloudfront.net/video/1811/DOD_106210954/DOD_106210954-1024x576-1769k.mp4",
-        source_page_url="https://www.dvidshub.net/video/639889/abdominal-crunch",
-        source_label="DVIDS public domain",
+        source_url="https://www.pexels.com/download/video/5469608/",
+        source_page_url="https://www.pexels.com/video/5469608/",
+        source_label="Pexels free license",
         source_ext=".mp4",
     ),
 ]
@@ -657,6 +657,59 @@ def analyze_video(video_path: Path, motion_family: str, view_type: str) -> tuple
     }
 
 
+def validate_reference_frames(spec: ReferenceSpec, frame_metrics: list[dict[str, Any]]) -> dict[str, float]:
+    values = {
+        "primary_angle": [to_number(item.get("primary_angle"), 0.0) for item in frame_metrics],
+        "depth_norm": [to_number(item.get("depth_norm"), 0.0) for item in frame_metrics],
+        "side_view_score": [to_number(item.get("side_view_score"), 0.0) for item in frame_metrics],
+        "asymmetry": [to_number(item.get("asymmetry"), 0.0) for item in frame_metrics],
+    }
+    quality = {
+        "valid_frames": float(len(frame_metrics)),
+        "primary_amplitude": max(values["primary_angle"]) - min(values["primary_angle"]),
+        "depth_amplitude": max(values["depth_norm"]) - min(values["depth_norm"]),
+        "mean_side_view_score": sum(values["side_view_score"]) / len(values["side_view_score"]),
+        "mean_asymmetry": sum(values["asymmetry"]) / len(values["asymmetry"]),
+    }
+    min_primary = {
+        # Supine leg raises often produce a stronger normalized-depth signal
+        # than torso-angle swing after isolating one clean rep.
+        "leg_raise": 12.0,
+    }.get(spec.slug, 16.0 if spec.motion_family == "core_like" else 20.0)
+    min_depth = 0.02 if spec.motion_family == "core_like" else 0.045
+    min_view = {
+        "pushup": 0.78,
+        "lunge": 0.58,
+        "glute_bridge": 0.55,
+        "leg_raise": 0.52,
+        "crunch": 0.50,
+    }.get(spec.slug, 0.45)
+    max_asymmetry = {
+        "pushup": 32.0,
+        "lunge": 55.0,
+        "glute_bridge": 24.0,
+        "leg_raise": 28.0,
+        "crunch": 24.0,
+    }.get(spec.slug, 60.0)
+    failures: list[str] = []
+    if quality["valid_frames"] < 10:
+        failures.append("valid_frames")
+    if quality["primary_amplitude"] < min_primary:
+        failures.append("primary_amplitude")
+    if quality["depth_amplitude"] < min_depth:
+        failures.append("depth_amplitude")
+    if spec.slug != "squat" and quality["mean_side_view_score"] < min_view:
+        failures.append("mean_side_view_score")
+    if spec.slug != "squat" and quality["mean_asymmetry"] > max_asymmetry:
+        failures.append("mean_asymmetry")
+    if failures:
+        raise RuntimeError(
+            f"Reference video failed quality checks for {spec.slug}: "
+            f"{', '.join(failures)}; metrics={quality}"
+        )
+    return quality
+
+
 def write_readme(records: list[dict[str, Any]]) -> None:
     lines = [
         "# Kinematics Reference Videos",
@@ -782,6 +835,8 @@ def main() -> int:
         convert_to_mp4(source_target, stored_video, force=args.force)
 
         frame_metrics, video_meta = analyze_video(stored_video, spec.motion_family, spec.view_type)
+        quality_meta = validate_reference_frames(spec, frame_metrics)
+        video_meta["quality"] = quality_meta
         reference_model, calibration_profile = build_reference_model(
             frame_metrics=frame_metrics,
             motion_family=spec.motion_family,

@@ -3091,6 +3091,30 @@
             var stopButton = byId('tech-stop-btn');
             var backButton = byId('tech-back-link');
             var voiceButton = byId('tech-voice-btn');
+            var guideButton = byId('tech-guide-ready-btn');
+
+            if (guideButton) {
+                guideButton.addEventListener('click', function () {
+                    var guideSection = byId('tech-guide-section');
+                    var stageShell = byId('tech-stage-shell');
+                    var inlineStatus = byId('tech-inline-status');
+                    var liveHint = byId('tech-live-hint');
+                    var controls = byId('tech-controls-inline');
+
+                    if (guideSection) {
+                        guideSection.hidden = true;
+                    }
+                    [stageShell, inlineStatus, liveHint, controls].forEach(function (node) {
+                        if (node) {
+                            node.hidden = false;
+                        }
+                    });
+                    ensurePreview().catch(function () {
+                        return null;
+                    });
+                    renderTechniqueUi();
+                });
+            }
 
             if (startButton) {
                 startButton.addEventListener('click', function () {

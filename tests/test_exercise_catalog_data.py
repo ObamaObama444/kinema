@@ -127,6 +127,23 @@ class ExerciseCatalogDataTests(unittest.TestCase):
             ["glute_bridge", "leg_raise", "crunch", "squat"],
         )
 
+    def test_system_reference_files_exist_only_as_required_runtime_inputs(self) -> None:
+        base = Path(__file__).resolve().parents[1] / "data" / "system_reference_profiles"
+        for slug in ["pushup", "lunge", "glute_bridge", "leg_raise", "crunch"]:
+            self.assertTrue((base / f"{slug}.json").exists(), slug)
+            self.assertTrue((base / "videos" / f"{slug}.mp4").exists(), slug)
+
+    def test_squat_session_payload_is_legacy_not_reference_based(self) -> None:
+        technique_path = Path(__file__).resolve().parents[1] / "app" / "api" / "technique.py"
+        tree = ast.parse(technique_path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef) and node.name == "_resolved_reference_payload":
+                first_if = next((stmt for stmt in node.body if isinstance(stmt, ast.If)), None)
+                self.assertIsNotNone(first_if)
+                self.assertIn("slug == 'squat'", ast.unparse(first_if.test))
+                return
+        raise AssertionError("_resolved_reference_payload not found in app/api/technique.py")
+
 
 if __name__ == "__main__":
     unittest.main()
