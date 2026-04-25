@@ -3,6 +3,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
+from app.core.exercise_catalog import catalog_slug_by_db_name
 from app.core.deps import get_db
 from app.crud.favorite import list_favorites_by_type
 from app.crud.notification import create_notification_safe
@@ -29,10 +30,7 @@ router = APIRouter(tags=["programs"])
 
 
 def _exercise_name_to_slug(name: str) -> str:
-    lower = name.lower()
-    if "отжим" in lower:
-        return "pushup"
-    return "squat"
+    return catalog_slug_by_db_name(name) or "squat"
 
 
 def _custom_program_signature(program) -> list[tuple[str, int, int, int]]:

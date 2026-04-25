@@ -28,6 +28,7 @@ class ExerciseTechniqueProfileResponse(BaseModel):
     title: str
     description: str
     status: str
+    is_system: bool = False
     motion_family: str
     motion_family_label: str
     view_type: str

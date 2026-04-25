@@ -80,7 +80,11 @@
                 window.KinematicsTechniqueRuntime.mount({
                     sessionId: sessionId,
                     exerciseSlug: site.ensureString(exercise.slug, 'squat'),
-                    exerciseTitle: site.ensureString(exercise.title, 'Упражнение')
+                    exerciseTitle: site.ensureString(exercise.title, 'Упражнение'),
+                    motionFamily: site.ensureString(exercise.motion_family, 'squat_like'),
+                    viewType: site.ensureString(exercise.view_type, 'side'),
+                    profileId: site.ensureFiniteNumber(exercise.profile_id),
+                    referenceBased: exercise.reference_based === true
                 });
             })
             .catch(function (error) {

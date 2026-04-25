@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.api.deps import get_current_user
 from app.api.custom_exercises import favorite_payload_for_exercise
 from app.core.deps import get_db
-from app.core.exercise_catalog import CATALOG_DB_NAME_BY_SLUG, EXERCISE_CATALOG
+from app.core.exercise_catalog import EXERCISE_CATALOG, catalog_slug_by_db_name
 from app.crud.favorite import add_favorite, list_favorites_by_type, remove_favorite
 from app.crud.program import get_program_by_id
 from app.models.exercise import Exercise
@@ -19,12 +19,11 @@ from app.schemas.favorite import (
 
 router = APIRouter(tags=["favorites"])
 
-_SLUG_BY_DB_NAME = {value: key for key, value in CATALOG_DB_NAME_BY_SLUG.items()}
 _CATALOG_BY_SLUG = {item["slug"]: item for item in EXERCISE_CATALOG}
 
 
 def _exercise_favorite_payload(db: Session, exercise: Exercise, created_at) -> FavoriteExerciseItemResponse:
-    slug = _SLUG_BY_DB_NAME.get(exercise.name) or f"exercise-{exercise.id}"
+    slug = catalog_slug_by_db_name(exercise.name) or f"exercise-{exercise.id}"
     catalog_item = _CATALOG_BY_SLUG.get(slug, {})
     custom_item = None
     if not catalog_item:

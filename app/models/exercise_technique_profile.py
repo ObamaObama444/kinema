@@ -1,4 +1,4 @@
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import mapped_column, relationship
 
 from app.core.database import Base
@@ -18,9 +18,10 @@ class ExerciseTechniqueProfile(Base):
     owner_user_id = mapped_column(
         Integer,
         ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=True,
         index=True,
     )
+    is_system = mapped_column(Boolean, nullable=False, default=False)
     public_slug = mapped_column(String(160), nullable=False, unique=True, index=True)
     status = mapped_column(String(32), nullable=False)
     motion_family = mapped_column(String(32), nullable=False)

@@ -13,17 +13,33 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
-from app.core.exercise_catalog import CATALOG_DB_NAME_BY_SLUG, EXERCISE_CATALOG
+from app.core.exercise_catalog import (
+    CATALOG_DB_NAME_BY_SLUG,
+    EXERCISE_CATALOG,
+    catalog_db_name_candidates,
+    catalog_slug_by_db_name,
+)
 from app.core.deps import get_db
 from app.models.exercise import Exercise
+from app.models.exercise_technique_profile import ExerciseTechniqueProfile
 from app.models.technique_session import TechniqueSession
 from app.models.user import User
+from app.services.generated_technique import compare_generated_rep, load_json
 from app.services.technique_compare import compare_pushup_rep, compare_squat_rep
 
 router = APIRouter(tags=["technique"])
 
 LOGS_DIR = Path("data/session_logs")
-TECHNIQUE_EXERCISE_SLUGS = ("squat", "pushup")
+SYSTEM_REFERENCE_DIR = Path("data/system_reference_profiles")
+CANONICAL_TECHNIQUE_CONFIG: dict[str, dict[str, Any]] = {
+    "squat": {"motion_family": "squat_like", "view_type": "side"},
+    "pushup": {"motion_family": "push_like", "view_type": "side"},
+    "lunge": {"motion_family": "lunge_like", "view_type": "side"},
+    "glute_bridge": {"motion_family": "core_like", "view_type": "side", "primary_direction": "rise"},
+    "leg_raise": {"motion_family": "core_like", "view_type": "side"},
+    "crunch": {"motion_family": "core_like", "view_type": "side"},
+}
+TECHNIQUE_EXERCISE_SLUGS = tuple(CANONICAL_TECHNIQUE_CONFIG.keys())
 TECHNIQUE_CATALOG_BY_SLUG = {
     str(item["slug"]): item
     for item in EXERCISE_CATALOG
@@ -379,10 +395,19 @@ class SavedRepPayload(BaseModel):
 
 
 class SaveTechniqueLogRequest(BaseModel):
-    exercise: Literal["squat", "pushup"]
+    exercise: str = Field(min_length=1, max_length=64)
     sessionId: str = Field(min_length=1, max_length=120)
     reps: list[SavedRepPayload] = Field(min_length=1)
     aggregates: dict[str, Any] | None = None
+
+    @field_validator("exercise")
+    @classmethod
+    def normalize_exercise(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if normalized not in TECHNIQUE_EXERCISE_SLUGS:
+            allowed = ", ".join(TECHNIQUE_EXERCISE_SLUGS)
+            raise ValueError(f"Поддерживаются только упражнения: {allowed}.")
+        return normalized
 
     @field_validator("sessionId")
     @classmethod
@@ -405,6 +430,10 @@ class TechniqueExerciseResponse(BaseModel):
     description: str
     tags: list[str] = Field(default_factory=list)
     technique_available: bool
+    motion_family: str
+    view_type: str
+    profile_id: int | None = None
+    reference_based: bool = False
 
 
 class TechniqueSessionStartRequest(BaseModel):
@@ -415,7 +444,8 @@ class TechniqueSessionStartRequest(BaseModel):
     def normalize_exercise_slug(cls, value: str) -> str:
         normalized = value.strip().lower()
         if normalized not in TECHNIQUE_EXERCISE_SLUGS:
-            raise ValueError("Сейчас техника доступна только для приседаний и отжиманий.")
+            allowed = ", ".join(TECHNIQUE_EXERCISE_SLUGS)
+            raise ValueError(f"Сейчас техника доступна только для: {allowed}.")
         return normalized
 
 
@@ -451,6 +481,12 @@ class TechniqueLiveRequest(BaseModel):
     baseline_snapshot: TechniqueBaselineSnapshot | None = None
 
 
+class TechniqueSessionLiveRequest(BaseModel):
+    phase: Literal["WAIT_READY", "TOP", "DOWN", "RISING"] = "WAIT_READY"
+    frame_metric: TechniqueFrameMetric
+    baseline_snapshot: TechniqueBaselineSnapshot | None = None
+
+
 class TechniqueLiveResponse(BaseModel):
     hint: str
     tone: Literal["low", "med", "high"]
@@ -469,7 +505,8 @@ class FinishTechniqueSessionRequest(BaseModel):
     def normalize_finish_exercise(cls, value: str) -> str:
         normalized = value.strip().lower()
         if normalized not in TECHNIQUE_EXERCISE_SLUGS:
-            raise ValueError("Сейчас техника доступна только для приседаний и отжиманий.")
+            allowed = ", ".join(TECHNIQUE_EXERCISE_SLUGS)
+            raise ValueError(f"Сейчас техника доступна только для: {allowed}.")
         return normalized
 
 
@@ -494,6 +531,76 @@ def _catalog_item_by_slug(slug: str) -> dict[str, Any]:
     return item
 
 
+def _technique_defaults(slug: str) -> dict[str, Any]:
+    defaults = CANONICAL_TECHNIQUE_CONFIG.get(slug)
+    if defaults is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Упражнение не поддерживается для проверки техники.",
+        )
+    return defaults
+
+
+def _load_system_profile_from_disk(slug: str) -> dict[str, Any] | None:
+    target_path = SYSTEM_REFERENCE_DIR / f"{slug}.json"
+    if not target_path.exists():
+        return None
+    try:
+        return json.loads(target_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
+def _published_system_profile_for_slug(db: Session, slug: str) -> ExerciseTechniqueProfile | None:
+    candidates = catalog_db_name_candidates(slug)
+    if not candidates:
+        return None
+    return db.execute(
+        select(ExerciseTechniqueProfile)
+        .join(Exercise, Exercise.id == ExerciseTechniqueProfile.exercise_id)
+        .where(
+            ExerciseTechniqueProfile.status == "published",
+            ExerciseTechniqueProfile.is_system.is_(True),
+            Exercise.name.in_(candidates),
+        )
+        .order_by(ExerciseTechniqueProfile.id.desc())
+    ).scalar_one_or_none()
+
+
+def _resolved_reference_payload(db: Session, slug: str) -> dict[str, Any]:
+    defaults = _technique_defaults(slug)
+    profile = _published_system_profile_for_slug(db, slug)
+    if profile is not None:
+        return {
+            "profile_id": int(profile.id),
+            "motion_family": str(profile.motion_family),
+            "view_type": str(profile.view_type),
+            "reference_based": True,
+            "reference_model": load_json(profile.reference_model_json, {}),
+            "calibration_profile": load_json(profile.calibration_profile_json, {}),
+        }
+
+    disk_payload = _load_system_profile_from_disk(slug)
+    if isinstance(disk_payload, dict):
+        return {
+            "profile_id": None,
+            "motion_family": str(disk_payload.get("motion_family") or defaults["motion_family"]),
+            "view_type": str(disk_payload.get("view_type") or defaults["view_type"]),
+            "reference_based": True,
+            "reference_model": load_json(json.dumps(disk_payload.get("reference_model") or {}), {}),
+            "calibration_profile": load_json(json.dumps(disk_payload.get("calibration_profile") or {}), {}),
+        }
+
+    return {
+        "profile_id": None,
+        "motion_family": str(defaults["motion_family"]),
+        "view_type": str(defaults["view_type"]),
+        "reference_based": True,
+        "reference_model": None,
+        "calibration_profile": None,
+    }
+
+
 def _difficulty_from_tags(tags: list[str]) -> str:
     normalized = " ".join(str(tag).strip().lower() for tag in tags)
     if "продвинут" in normalized:
@@ -512,9 +619,13 @@ def _get_or_create_catalog_exercise(db: Session, slug: str) -> Exercise:
         )
 
     exercise = db.execute(
-        select(Exercise).where(Exercise.name == db_name)
+        select(Exercise).where(Exercise.name.in_(catalog_db_name_candidates(slug)))
     ).scalar_one_or_none()
     if exercise is not None:
+        if exercise.name != db_name:
+            exercise.name = db_name
+            db.add(exercise)
+            db.flush()
         return exercise
 
     catalog_item = _catalog_item_by_slug(slug)
@@ -522,7 +633,7 @@ def _get_or_create_catalog_exercise(db: Session, slug: str) -> Exercise:
     exercise = Exercise(
         name=db_name,
         description=str(catalog_item.get("description") or db_name),
-        equipment="Фитнес-резинка" if slug == "band_row" else None,
+        equipment=None,
         primary_muscles=tags[-1] if tags else None,
         difficulty=_difficulty_from_tags(tags),
     )
@@ -531,8 +642,9 @@ def _get_or_create_catalog_exercise(db: Session, slug: str) -> Exercise:
     return exercise
 
 
-def _serialize_exercise(exercise: Exercise, slug: str) -> TechniqueExerciseResponse:
+def _serialize_exercise(exercise: Exercise, slug: str, db: Session) -> TechniqueExerciseResponse:
     catalog_item = _catalog_item_by_slug(slug)
+    reference_payload = _resolved_reference_payload(db, slug)
     return TechniqueExerciseResponse(
         id=exercise.id,
         slug=slug,
@@ -540,17 +652,18 @@ def _serialize_exercise(exercise: Exercise, slug: str) -> TechniqueExerciseRespo
         description=str(catalog_item.get("description") or exercise.description),
         tags=[str(item).strip() for item in catalog_item.get("tags", []) if str(item).strip()],
         technique_available=bool(catalog_item.get("technique_available")),
+        motion_family=str(reference_payload["motion_family"]),
+        view_type=str(reference_payload["view_type"]),
+        profile_id=reference_payload["profile_id"],
+        reference_based=bool(reference_payload["reference_based"]),
     )
 
 
 def _session_slug(session: TechniqueSession) -> str:
-    for slug, db_name in CATALOG_DB_NAME_BY_SLUG.items():
-        if db_name == session.exercise.name:
-            return slug
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="Не удалось определить упражнение для technique-сессии.",
-    )
+    slug = catalog_slug_by_db_name(session.exercise.name)
+    if slug:
+        return slug
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Не удалось определить упражнение для technique-сессии.")
 
 
 def _get_owned_technique_session(
@@ -575,6 +688,7 @@ def _get_owned_technique_session(
 
 def _serialize_session(session: TechniqueSession) -> TechniqueSessionResponse:
     slug = _session_slug(session)
+    session_db = session.exercise._sa_instance_state.session
     return TechniqueSessionResponse(
         session_id=session.id,
         status=str(session.status),
@@ -583,7 +697,7 @@ def _serialize_session(session: TechniqueSession) -> TechniqueSessionResponse:
         reps_count=int(session.reps_count or 0),
         avg_score=float(session.avg_score) if session.avg_score is not None else None,
         log_path=str(session.log_path) if session.log_path else None,
-        exercise=_serialize_exercise(session.exercise, slug),
+        exercise=_serialize_exercise(session.exercise, slug, session_db),
     )
 
 
@@ -1183,28 +1297,34 @@ def _write_technique_log(
     return str(target_path), aggregates_block, ui_block
 
 
-def _posture_ok(exercise_slug: str, metric: TechniqueFrameMetric) -> bool:
-    if exercise_slug == "squat":
+def _posture_ok(motion_family: str, metric: TechniqueFrameMetric) -> bool:
+    if motion_family in {"squat_like", "lunge_like"}:
         return (
             _float_or(metric.side_view_score, 0.0) >= 0.22
             and _float_or(metric.torso_angle, 90.0) <= 68.0
             and _float_or(metric.hip_ankle_vertical_norm, 0.0) >= 0.22
         )
+    if motion_family == "push_like":
+        return (
+            _float_or(metric.side_view_score, 0.0) >= 0.35
+            and _float_or(metric.posture_tilt_deg, 90.0) <= 34.0
+            and _float_or(metric.hip_ankle_vertical_norm, 1.0) <= 0.45
+        )
     return (
         _float_or(metric.side_view_score, 0.0) >= 0.35
-        and _float_or(metric.posture_tilt_deg, 90.0) <= 34.0
-        and _float_or(metric.hip_ankle_vertical_norm, 1.0) <= 0.45
+        and _float_or(metric.posture_tilt_deg, 90.0) <= 48.0
     )
 
 
 def _build_live_hint(
     *,
     exercise_slug: str,
+    motion_family: str,
     metric: TechniqueFrameMetric,
     phase: str,
     baseline: TechniqueBaselineSnapshot | None,
 ) -> TechniqueLiveResponse:
-    posture_ok = _posture_ok(exercise_slug, metric)
+    posture_ok = _posture_ok(motion_family, metric)
     primary_angle = _float_or(metric.primary_angle, 180.0)
     depth_norm = _float_or(metric.depth_norm, 0.0)
     torso_angle = _float_or(metric.torso_angle, 0.0)
@@ -1235,12 +1355,14 @@ def _build_live_hint(
     tone: Literal["low", "med", "high"] = "low"
 
     if not posture_ok:
-        if exercise_slug == "squat":
+        if motion_family in {"squat_like", "lunge_like"}:
             hint = "Встаньте боком к камере и держите корпус с ногами полностью в кадре."
-        else:
+        elif motion_family == "push_like":
             hint = "Повернитесь боком, примите упор лёжа и держите корпус ровной линией."
+        else:
+            hint = "Лягте боком к камере и оставьте корпус с ногами в кадре."
         tone = "high"
-    elif exercise_slug == "squat":
+    elif motion_family in {"squat_like", "lunge_like"}:
         if (
             phase in ("DOWN", "RISING")
             and side_view_score >= 0.62
@@ -1264,7 +1386,7 @@ def _build_live_hint(
             hint = "Поднимайтесь ровно, без рывка."
         else:
             hint = "Темп ровный, амплитуда стабильная."
-    else:
+    elif motion_family == "push_like":
         if leg_angle < 132.0:
             hint = "Выпрямите ноги сильнее и удерживайте корпус одной линией."
             tone = "high"
@@ -1281,6 +1403,27 @@ def _build_live_hint(
             hint = "Поднимайтесь без рывка и не ломайте линию корпуса."
         else:
             hint = "Контролируйте локти и глубину без провала."
+    else:
+        if exercise_slug == "glute_bridge":
+            bridge_rise = max(0.0, primary_angle - baseline_primary)
+            if phase in ("DOWN", "RISING") and bridge_rise < 14.0:
+                hint = "Поднимайте таз выше и фиксируйте верхнюю точку."
+                tone = "med"
+            elif asymmetry > 16.0:
+                hint = "Поднимайте таз ровно, без перекоса сторон."
+                tone = "med"
+            else:
+                hint = "Подъём таза плавный, опускайтесь под контролем."
+        elif depth_delta < 0.03 and phase == "DOWN":
+            hint = "Добавьте амплитуду без рывка."
+            tone = "med"
+        elif asymmetry > 18.0:
+            hint = "Выравняйте движение сторон и не раскачивайтесь."
+            tone = "med"
+        elif phase == "RISING":
+            hint = "Возвращайтесь в стартовую позицию без рывка."
+        else:
+            hint = "Корпус стабилен, темп ровный."
 
     return TechniqueLiveResponse(
         hint=hint,
@@ -1324,7 +1467,7 @@ def start_technique_session(
     return TechniqueSessionStartResponse(
         session_id=session.id,
         redirect_url=f"/app/technique/{session.id}",
-        exercise=_serialize_exercise(exercise, payload.exercise_slug),
+        exercise=_serialize_exercise(exercise, payload.exercise_slug, db),
     )
 
 
@@ -1338,6 +1481,28 @@ def get_technique_session(
     return _serialize_session(session)
 
 
+@router.post("/api/technique/sessions/{session_id}/live", response_model=TechniqueLiveResponse)
+def get_session_live_technique_hint(
+    session_id: int,
+    payload: TechniqueSessionLiveRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> TechniqueLiveResponse:
+    session = _get_owned_technique_session(db, current_user.id, session_id)
+    if session.status != "active":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Technique-сессия уже завершена.")
+
+    session_slug = _session_slug(session)
+    reference_payload = _resolved_reference_payload(db, session_slug)
+    return _build_live_hint(
+        exercise_slug=session_slug,
+        motion_family=str(reference_payload["motion_family"]),
+        metric=payload.frame_metric,
+        phase=payload.phase,
+        baseline=payload.baseline_snapshot,
+    )
+
+
 @router.post("/api/technique/live/{exercise}", response_model=TechniqueLiveResponse)
 def get_live_technique_hint(
     exercise: str,
@@ -1349,7 +1514,7 @@ def get_live_technique_hint(
     if exercise_slug not in TECHNIQUE_EXERCISE_SLUGS:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Live-подсказки доступны только для приседаний и отжиманий.",
+            detail="Live-подсказки доступны только для канонических упражнений техники.",
         )
 
     session = _get_owned_technique_session(db, current_user.id, payload.session_id)
@@ -1361,9 +1526,11 @@ def get_live_technique_hint(
 
     session_slug = _session_slug(session)
     effective_slug = session_slug if session_slug in TECHNIQUE_EXERCISE_SLUGS else exercise_slug
+    reference_payload = _resolved_reference_payload(db, effective_slug)
 
     return _build_live_hint(
         exercise_slug=effective_slug,
+        motion_family=str(reference_payload["motion_family"]),
         metric=payload.frame_metric,
         phase=payload.phase,
         baseline=payload.baseline_snapshot,
@@ -1415,6 +1582,55 @@ def finish_technique_session(
         log_path=str(session.log_path) if session.log_path else None,
         redirect_url="/app/catalog",
         ui=ui_block,
+    )
+
+
+@router.post("/api/technique/sessions/{session_id}/compare", response_model=CompareResponse)
+def compare_session_rep(
+    session_id: int,
+    payload: CompareRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> CompareResponse:
+    session = _get_owned_technique_session(db, current_user.id, session_id)
+    session_slug = _session_slug(session)
+    reference_payload = _resolved_reference_payload(db, session_slug)
+    frame_metrics = [item.model_dump() for item in payload.frame_metrics]
+
+    if reference_payload["reference_model"] and reference_payload["calibration_profile"]:
+        result = compare_generated_rep(
+            frame_metrics=frame_metrics,
+            reference_model=reference_payload["reference_model"],
+            calibration_profile=reference_payload["calibration_profile"],
+        )
+        return CompareResponse(
+            rep_index=payload.rep_index,
+            rep_score=int(result["rep_score"]),
+            quality=str(result["quality"]),
+            errors=list(result["errors"]),
+            tips=list(result["tips"]),
+            metrics=dict(result["metrics"]),
+            details=dict(result["details"]),
+        )
+
+    if session_slug == "squat":
+        legacy_result = compare_squat_rep(frame_metrics)
+    elif session_slug == "pushup":
+        legacy_result = compare_pushup_rep(frame_metrics)
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Для этого упражнения эталон ещё не опубликован. Запустите импорт системных reference-профилей.",
+        )
+
+    return CompareResponse(
+        rep_index=payload.rep_index,
+        rep_score=legacy_result.rep_score,
+        quality=legacy_result.quality,
+        errors=legacy_result.errors,
+        tips=legacy_result.tips,
+        metrics=legacy_result.metrics,
+        details=legacy_result.details,
     )
 
 

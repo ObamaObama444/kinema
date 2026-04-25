@@ -217,6 +217,8 @@ def _can_access_profile(profile: ExerciseTechniqueProfile, current_user: User) -
 
 
 def _can_edit_profile(profile: ExerciseTechniqueProfile, current_user: User) -> bool:
+    if profile.is_system:
+        return False
     return profile.owner_user_id == current_user.id
 
 
@@ -232,6 +234,7 @@ def _serialize_profile(
         title=profile.exercise.name,
         description=profile.exercise.description,
         status=profile.status,
+        is_system=bool(profile.is_system),
         motion_family=profile.motion_family,
         motion_family_label=motion_family_label(profile.motion_family),
         view_type=profile.view_type,
@@ -257,7 +260,10 @@ def published_catalog_items(
 ) -> list[ExerciseCatalogItemResponse]:
     profiles = db.execute(
         select(ExerciseTechniqueProfile)
-        .where(ExerciseTechniqueProfile.status == "published")
+        .where(
+            ExerciseTechniqueProfile.status == "published",
+            ExerciseTechniqueProfile.is_system.is_(False),
+        )
         .order_by(ExerciseTechniqueProfile.published_at.desc(), ExerciseTechniqueProfile.id.desc())
     ).scalars().all()
 
@@ -355,6 +361,7 @@ def create_custom_exercise_draft(
         profile = ExerciseTechniqueProfile(
             exercise_id=exercise.id,
             owner_user_id=current_user.id,
+            is_system=False,
             public_slug=f"custom-technique-{slugify_title(cleaned_title)}-{exercise.id}",
             status="draft",
             motion_family=str(motion_family or "").strip().lower(),

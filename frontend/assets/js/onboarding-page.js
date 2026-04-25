@@ -913,14 +913,11 @@
     function buildLocalPlanExercise(slug) {
         var library = {
             squat: { title: 'Приседания', details: 'Контроль коленей и ровный корпус', sets: 3, reps: 12, rest_sec: 45 },
-            plank: { title: 'Планка', details: 'Держите корпус прямым без провиса', sets: 3, reps: 35, rest_sec: 30 },
-            lunge: { title: 'Выпады', details: 'Шаг комфортной длины и стабильный таз', sets: 3, reps: 10, rest_sec: 40 },
+            pushup: { title: 'Отжимания', details: 'Корпус прямой, амплитуда без провала', sets: 3, reps: 10, rest_sec: 45 },
+            lunge: { title: 'Выпад назад', details: 'Шаг комфортной длины и стабильный таз', sets: 3, reps: 10, rest_sec: 40 },
             glute_bridge: { title: 'Ягодичный мост', details: 'Подъём таза без рывка', sets: 3, reps: 15, rest_sec: 35 },
+            leg_raise: { title: 'Подъёмы ног лежа', details: 'Подъем ног без рывка и раскачки', sets: 3, reps: 12, rest_sec: 35 },
             crunch: { title: 'Скручивания', details: 'Мягкий подъём корпуса без рывков шеей', sets: 3, reps: 16, rest_sec: 30 },
-            calf_raise: { title: 'Подъёмы на носки', details: 'Плавное движение вверх и вниз', sets: 3, reps: 18, rest_sec: 25 },
-            band_row: { title: 'Тяга резинки к поясу', details: 'Лопатки сводим без подъёма плеч', sets: 3, reps: 14, rest_sec: 35 },
-            burpee: { title: 'Берпи', details: 'Темп без провала техники', sets: 3, reps: 8, rest_sec: 50 },
-            superman: { title: 'Супермен', details: 'Удержание спины и ягодиц в одном ритме', sets: 3, reps: 12, rest_sec: 30 }
         };
         return Object.assign({ slug: slug }, library[slug] || library.squat);
     }
@@ -931,7 +928,7 @@
         var goalTitle = GOAL_TITLES[data.main_goal] || 'Быть в форме';
         var frequency = Number(data.training_frequency || 3);
         var selectedDays = reconcileTrainingDays(data.training_days || [], frequency);
-        var exercisePool = ['squat', 'plank', 'lunge', 'glute_bridge', 'crunch', 'calf_raise', 'band_row', 'superman'];
+        var exercisePool = ['squat', 'pushup', 'lunge', 'glute_bridge', 'leg_raise', 'crunch'];
         var baseDate = new Date();
         var days = [];
         var index;
@@ -942,7 +939,7 @@
             var dateLabel = String(date.getDate()).padStart(2, '0') + '.' + String(date.getMonth() + 1).padStart(2, '0');
             var weekdayLabel = selectedDays.length ? dayLabelByValue(selectedDays[index % selectedDays.length]) : dayLabelByValue(VALID_DAY_VALUES[index % VALID_DAY_VALUES.length]);
             var exerciseSlugs = isRecovery
-                ? ['plank', 'glute_bridge', 'crunch', 'calf_raise']
+                ? ['glute_bridge', 'leg_raise', 'crunch', 'squat']
                 : [exercisePool[index % exercisePool.length], exercisePool[(index + 1) % exercisePool.length], exercisePool[(index + 2) % exercisePool.length], 'squat'];
 
             days.push({

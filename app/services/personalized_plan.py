@@ -112,31 +112,10 @@ RECOVERY_TITLE_VARIANTS = [
 EXERCISE_LIBRARY = {
     "squat": {"title": "Приседания", "areas": {"legs", "full_body"}, "details": "Базовый темп и контроль корпуса"},
     "pushup": {"title": "Отжимания", "areas": {"chest", "arms", "full_body"}, "details": "Без резких провалов в плечах"},
-    "plank": {"title": "Планка", "areas": {"core", "full_body"}, "details": "Держать корпус ровно"},
-    "lunge": {"title": "Выпады", "areas": {"legs", "full_body"}, "details": "Шаг назад и контроль колена"},
-    "burpee": {"title": "Берпи", "areas": {"full_body"}, "details": "Только если темп уже устойчивый"},
-    "band_row": {"title": "Тяга резинки", "areas": {"arms", "shoulders", "full_body"}, "details": "Мягкая тяга на спину и осанку"},
+    "lunge": {"title": "Выпад назад", "areas": {"legs", "full_body"}, "details": "Шаг назад и контроль колена"},
     "glute_bridge": {"title": "Ягодичный мост", "areas": {"legs", "core", "full_body"}, "details": "Ягодицы и задняя цепь"},
+    "leg_raise": {"title": "Подъёмы ног лежа", "areas": {"core", "full_body"}, "details": "Подконтрольный подъем без рывка"},
     "crunch": {"title": "Скручивания", "areas": {"core", "full_body"}, "details": "Короткая амплитуда и дыхание"},
-    "calf_raise": {"title": "Подъемы на носки", "areas": {"legs"}, "details": "Икры и устойчивость голеностопа"},
-    "superman": {"title": "Супермен", "areas": {"core", "shoulders", "full_body"}, "details": "Мягкое включение спины"},
-    "dead_bug": {"title": "Дэд баг", "areas": {"core", "full_body"}, "details": "Поясница прижата, движения поочередно"},
-    "bird_dog": {"title": "Берд-дог", "areas": {"core", "shoulders", "full_body"}, "details": "Баланс и стабилизация корпуса"},
-    "side_plank": {"title": "Боковая планка", "areas": {"core", "shoulders", "full_body"}, "details": "Боковая линия корпуса и дыхание"},
-    "leg_raise": {"title": "Подъемы ног", "areas": {"core", "full_body"}, "details": "Подконтрольный подъем без рывка"},
-    "chair_squat": {"title": "Приседания к стулу", "areas": {"legs", "full_body"}, "details": "Контроль глубины через опору"},
-    "wall_sit": {"title": "Стульчик у стены", "areas": {"legs", "full_body"}, "details": "Статика для ног и контроля колен"},
-    "good_morning": {"title": "Наклоны с прямой спиной", "areas": {"legs", "core", "full_body"}, "details": "Спина длинная, таз назад"},
-    "side_lunge": {"title": "Боковые выпады", "areas": {"legs", "full_body"}, "details": "Работаем в сторону и держим баланс"},
-    "donkey_kick": {"title": "Отведение ноги назад", "areas": {"legs", "core", "full_body"}, "details": "Ягодицы и контроль таза"},
-    "march_place": {"title": "Шаг на месте", "areas": {"legs", "full_body"}, "details": "Легкое кардио без спешки"},
-    "wall_pushup": {"title": "Отжимания от стены", "areas": {"chest", "arms", "full_body"}, "details": "Щадящий угол и ровный корпус"},
-    "incline_pushup": {"title": "Отжимания от опоры", "areas": {"chest", "arms", "full_body"}, "details": "Ладони выше опоры, спокойная амплитуда"},
-    "shoulder_tap": {"title": "Касания плеч", "areas": {"arms", "shoulders", "core", "full_body"}, "details": "Без раскачки таза"},
-    "band_pull_apart": {"title": "Разведение резинки", "areas": {"arms", "shoulders", "full_body"}, "details": "Осанка и задняя дельта"},
-    "cat_cow": {"title": "Кошка-корова", "areas": {"core", "full_body"}, "details": "Мобилизация спины и дыхание"},
-    "child_pose_reach": {"title": "Вытяжение в позе ребенка", "areas": {"shoulders", "core", "full_body"}, "details": "Мягко вытянуть спину и плечи"},
-    "hamstring_fold": {"title": "Наклон на заднюю линию", "areas": {"legs", "full_body"}, "details": "Мягкая растяжка задней поверхности"},
 }
 
 
@@ -298,16 +277,15 @@ def _fallback_tags(data: dict[str, object], derived: dict[str, object]) -> list[
 def _exercise_pool(data: dict[str, object], recovery: bool = False) -> list[str]:
     focus = str(data.get("focus_area") or "full_body")
     injuries = set(_normalize_list(data.get("injury_areas")))
-    equipment = set(_normalize_list(data.get("equipment_tags")))
     level = str(data.get("fitness_level") or "beginner")
     pool: list[str] = []
 
     if recovery:
-        base = ["cat_cow", "bird_dog", "glute_bridge", "calf_raise", "dead_bug", "hamstring_fold", "child_pose_reach"]
-        if "shoulders" in injuries:
-            base = ["glute_bridge", "calf_raise", "dead_bug", "hamstring_fold"]
-        if "wrists" in injuries:
-            base = [slug for slug in base if slug not in {"bird_dog", "plank"}]
+        base = ["glute_bridge", "leg_raise", "crunch", "squat"]
+        if "shoulders" in injuries or "wrists" in injuries:
+            base = [slug for slug in base if slug != "squat"]
+        if "knees" in injuries:
+            base = [slug for slug in base if slug != "squat"]
         return base
 
     for slug, item in EXERCISE_LIBRARY.items():
@@ -315,19 +293,15 @@ def _exercise_pool(data: dict[str, object], recovery: bool = False) -> list[str]
         if focus in areas or "full_body" in areas:
             pool.append(slug)
 
-    if "shoulders" in injuries:
-        pool = [slug for slug in pool if slug not in {"pushup", "incline_pushup", "wall_pushup", "band_row", "band_pull_apart", "shoulder_tap", "side_plank", "burpee"}]
-    if "wrists" in injuries:
-        pool = [slug for slug in pool if slug not in {"pushup", "incline_pushup", "wall_pushup", "plank", "side_plank", "shoulder_tap", "burpee"}]
+    if "shoulders" in injuries or "wrists" in injuries:
+        pool = [slug for slug in pool if slug != "pushup"]
     if "knees" in injuries:
-        pool = [slug for slug in pool if slug not in {"burpee", "side_lunge"}]
-    if "none" in equipment:
-        pool = [slug for slug in pool if slug not in {"band_row", "band_pull_apart"}]
+        pool = [slug for slug in pool if slug not in {"squat", "lunge"}]
     if level == "beginner":
-        pool = [slug for slug in pool if slug not in {"burpee"}]
+        pool = [slug for slug in pool if slug in {"squat", "pushup", "lunge", "glute_bridge", "leg_raise", "crunch"}]
 
     if not pool:
-        pool = ["glute_bridge", "dead_bug", "crunch", "chair_squat", "march_place"]
+        pool = ["glute_bridge", "leg_raise", "crunch", "squat"]
     return pool
 
 

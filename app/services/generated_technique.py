@@ -196,7 +196,7 @@ def slugify_title(title: str) -> str:
 
 def build_catalog_tags(profile: Any) -> list[str]:
     tags = [
-        "Пользовательский эталон",
+        "Системный эталон" if bool(getattr(profile, "is_system", False)) else "Пользовательский эталон",
         motion_family_label(getattr(profile, "motion_family", "")),
         view_type_label(getattr(profile, "view_type", "")),
     ]
@@ -565,6 +565,99 @@ def _score_from_ratio(ratio: float, low: float, high: float) -> float:
     return max(0.0, 100.0 - excess * 125.0)
 
 
+def _generated_hint_context(
+    *,
+    motion_family: str,
+    rep_score: int,
+    caps_applied: list[str],
+    lowest_bucket: str,
+) -> tuple[list[str], dict[str, Any], dict[str, bool]]:
+    family_name = {
+        "squat_like": "приседа",
+        "lunge_like": "выпада",
+        "push_like": "отжимания",
+        "core_like": "движения корпуса",
+        "hinge_like": "наклона",
+    }.get(motion_family, "движения")
+    voice_map = {
+        "camera_side_view": {
+            "message": "Повернитесь боком к камере и оставьте всё тело в кадре.",
+            "priority": "high",
+        },
+        "partial_range": {
+            "message": f"Верните амплитуду {family_name} ближе к эталону.",
+            "priority": "med",
+        },
+        "body_alignment": {
+            "message": f"Стабилизируйте корпус и держите форму {family_name} ровнее.",
+            "priority": "med",
+        },
+        "asymmetry": {
+            "message": "Выравняйте стороны и уберите перекос движения.",
+            "priority": "med",
+        },
+        "heel_lift": {
+            "message": "Сохраняйте полную опору и не отрывайте пятку.",
+            "priority": "high",
+        },
+        "instability": {
+            "message": "Сделайте повтор плавнее, без рывков.",
+            "priority": "med",
+        },
+        "tempo_control": {
+            "message": "Вернитесь к ровному темпу и не спешите.",
+            "priority": "low",
+        },
+        "good_rep": {
+            "message": "Чистый повтор, держите ту же технику.",
+            "priority": "low",
+        },
+    }
+    hint_codes: list[str] = []
+
+    if "bad_view" in caps_applied:
+        hint_codes.append("camera_side_view")
+    if "range" in caps_applied:
+        hint_codes.append("partial_range")
+    if "posture" in caps_applied:
+        hint_codes.append("body_alignment")
+    if "asymmetry" in caps_applied:
+        hint_codes.append("asymmetry")
+    if "heel_lift" in caps_applied:
+        hint_codes.append("heel_lift")
+
+    bucket_to_code = {
+        "trajectory": "partial_range",
+        "range": "partial_range",
+        "posture": "body_alignment",
+        "symmetry": "asymmetry",
+        "stability": "instability",
+        "tempo": "tempo_control",
+    }
+    if not hint_codes:
+        hint_codes.append(bucket_to_code.get(lowest_bucket, "tempo_control"))
+
+    if rep_score >= 85 and not caps_applied:
+        hint_codes = ["good_rep"]
+
+    primary_code = hint_codes[0] if hint_codes else "good_rep"
+    voice_template = voice_map.get(primary_code, voice_map["good_rep"])
+    rule_flags = {
+        "bad_view": "bad_view" in caps_applied,
+        "partial_range": "range" in caps_applied or primary_code == "partial_range",
+        "body_alignment": "posture" in caps_applied or primary_code == "body_alignment",
+        "asymmetry": "asymmetry" in caps_applied or primary_code == "asymmetry",
+        "heel_lift": "heel_lift" in caps_applied or primary_code == "heel_lift",
+        "good_rep": primary_code == "good_rep",
+    }
+    voice_feedback = {
+        "code": primary_code,
+        "message": str(voice_template["message"]),
+        "priority": str(voice_template["priority"]),
+    }
+    return list(dict.fromkeys(hint_codes)), voice_feedback, rule_flags
+
+
 def compare_generated_rep(
     *,
     frame_metrics: list[dict[str, Any]],
@@ -654,6 +747,17 @@ def compare_generated_rep(
     errors: list[str] = []
     tips: list[str] = []
     caps_applied: list[str] = []
+    lowest_bucket = min(
+        [
+            ("trajectory", trajectory_score),
+            ("range", range_score),
+            ("posture", posture_score),
+            ("symmetry", symmetry_score),
+            ("stability", stability_score),
+            ("tempo", tempo_score),
+        ],
+        key=lambda item: item[1],
+    )[0]
 
     mean_view_quality = _safe_float(analysis["summary"].get("mean_view_quality"), 0.0)
     if mean_view_quality < calibration["tolerances"]["view_quality_min"]:
@@ -692,17 +796,6 @@ def compare_generated_rep(
         caps_applied.append("heel_lift")
 
     if not tips:
-        lowest_bucket = min(
-            [
-                ("trajectory", trajectory_score),
-                ("range", range_score),
-                ("posture", posture_score),
-                ("symmetry", symmetry_score),
-                ("stability", stability_score),
-                ("tempo", tempo_score),
-            ],
-            key=lambda item: item[1],
-        )[0]
         if lowest_bucket == "trajectory":
             tips.append("Сделайте повтор ближе к эталонной траектории по всей амплитуде.")
         elif lowest_bucket == "range":
@@ -717,6 +810,12 @@ def compare_generated_rep(
             tips.append("Старайтесь удерживать темп ближе к эталонному повтору.")
 
     rep_score = int(round(_clamp(score_float, 1.0, 100.0)))
+    hint_codes, voice_feedback, rule_flags = _generated_hint_context(
+        motion_family=str(reference_model.get("motion_family") or "squat_like"),
+        rep_score=rep_score,
+        caps_applied=caps_applied,
+        lowest_bucket=lowest_bucket,
+    )
 
     return {
         "rep_score": rep_score,
@@ -753,6 +852,9 @@ def compare_generated_rep(
                 "torso": round(torso_curve_error, 5),
             },
             "caps_applied": caps_applied,
+            "hint_codes": hint_codes,
+            "voice_feedback": voice_feedback,
+            "rule_flags": rule_flags,
             "analysis": analysis["summary"],
             "calibration_profile": calibration,
         },

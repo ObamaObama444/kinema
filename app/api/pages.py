@@ -525,7 +525,7 @@ def technique_session_page(
         data_view="technique-session",
         page_heading="Проверка техники",
         page_subtitle="Камера, live-подсказки и real-time оценка повторов.",
-        page_scripts=["/assets/js/technique-runtime.js", "/assets/js/technique-session-page.js"],
+        page_scripts=["/assets/js/custom-technique-utils.js", "/assets/js/technique-runtime.js", "/assets/js/technique-session-page.js"],
         hide_header=True,
     )
 

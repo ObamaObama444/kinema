@@ -1,6 +1,5 @@
 (function () {
     var site = window.KinematicsSite;
-    var PUSHUP_UNLOCK_STORAGE_KEY = 'kinematics-catalog-pushup-unlocked-v4';
     var CATALOG_NOTICE_STORAGE_KEY = 'kinematics-catalog-notice';
     var activeRouteToken = 0;
     var FALLBACK_ITEMS = [
@@ -14,7 +13,7 @@
             is_favorite: false
         },
         {
-            id: null,
+            id: 2,
             slug: 'pushup',
             title: 'Отжимания',
             description: 'Классическое упражнение для груди, плеч и стабилизаторов корпуса.',
@@ -24,74 +23,38 @@
         },
         {
             id: 3,
-            slug: 'plank',
-            title: 'Планка',
-            description: 'Статическое упражнение для стабилизации корпуса и поясницы.',
-            tags: ['Без инвентаря', 'Кора', 'Лёгкий уровень'],
-            technique_available: false,
+            slug: 'lunge',
+            title: 'Выпад назад',
+            description: 'Контролируемый шаг назад для силы ног, баланса и устойчивости таза.',
+            tags: ['Без инвентаря', 'Ноги / Ягодицы', 'Средний уровень'],
+            technique_available: true,
             is_favorite: false
         },
         {
             id: 4,
-            slug: 'lunge',
-            title: 'Выпады',
-            description: 'Развивает силу ног и баланс, хорошо дополняет приседания.',
-            tags: ['Без инвентаря', 'Ноги / Ягодицы', 'Средний уровень'],
-            technique_available: false,
-            is_favorite: false
-        },
-        {
-            id: 5,
-            slug: 'burpee',
-            title: 'Берпи',
-            description: 'Интенсивное кардио-упражнение для выносливости всего тела.',
-            tags: ['Кардио', 'Все тело', 'Продвинутый уровень'],
-            technique_available: false,
-            is_favorite: false
-        },
-        {
-            id: 6,
-            slug: 'band_row',
-            title: 'Тяга резинки к поясу',
-            description: 'Упражнение на спину и осанку с фитнес-резинкой.',
-            tags: ['Резинка', 'Спина', 'Средний уровень'],
-            technique_available: false,
-            is_favorite: false
-        },
-        {
-            id: 7,
             slug: 'glute_bridge',
             title: 'Ягодичный мост',
             description: 'Акцентированно включает ягодицы и заднюю поверхность бедра.',
             tags: ['Без инвентаря', 'Ягодицы', 'Лёгкий уровень'],
-            technique_available: false,
+            technique_available: true,
             is_favorite: false
         },
         {
-            id: 8,
+            id: 5,
+            slug: 'leg_raise',
+            title: 'Подъёмы ног лежа',
+            description: 'Подконтрольный подъём ног лёжа для пресса и контроля корпуса.',
+            tags: ['Без инвентаря', 'Пресс', 'Лёгкий уровень'],
+            technique_available: true,
+            is_favorite: false
+        },
+        {
+            id: 6,
             slug: 'crunch',
             title: 'Скручивания',
             description: 'Базовое упражнение на мышцы пресса и контроль корпуса.',
             tags: ['Без инвентаря', 'Пресс', 'Лёгкий уровень'],
-            technique_available: false,
-            is_favorite: false
-        },
-        {
-            id: 9,
-            slug: 'calf_raise',
-            title: 'Подъемы на носки',
-            description: 'Укрепляет икроножные мышцы и устойчивость голеностопа.',
-            tags: ['Без инвентаря', 'Икры', 'Лёгкий уровень'],
-            technique_available: false,
-            is_favorite: false
-        },
-        {
-            id: 10,
-            slug: 'superman',
-            title: 'Супермен',
-            description: 'Укрепляет разгибатели спины и заднюю цепь мышц.',
-            tags: ['Без инвентаря', 'Спина', 'Лёгкий уровень'],
-            technique_available: false,
+            technique_available: true,
             is_favorite: false
         }
     ];
@@ -100,10 +63,6 @@
         items: [],
         notice: ''
     };
-
-    function isPushupUnlocked() {
-        return site.safeGetStorage(PUSHUP_UNLOCK_STORAGE_KEY) === '1';
-    }
 
     function consumeCatalogNotice() {
         var value = site.safeGetSessionStorage(CATALOG_NOTICE_STORAGE_KEY) || '';
@@ -138,11 +97,7 @@
     }
 
     function buildFallbackItems() {
-        return FALLBACK_ITEMS
-            .filter(function (item) {
-                return item.slug !== 'pushup' || isPushupUnlocked();
-            })
-            .map(normalizeCatalogItem);
+        return FALLBACK_ITEMS.map(normalizeCatalogItem);
     }
 
     function resolveCatalogItems(rawItems) {

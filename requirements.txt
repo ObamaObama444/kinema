@@ -10,3 +10,5 @@ python-jose[cryptography]==3.3.0
 pydantic-settings==2.7.1
 python-dotenv==1.0.1
 python-multipart==0.0.20
+mediapipe==0.10.21
+opencv-python-headless==4.11.0.86

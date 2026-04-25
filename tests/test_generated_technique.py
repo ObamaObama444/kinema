@@ -107,6 +107,9 @@ class GeneratedTechniqueTests(unittest.TestCase):
         self.assertGreaterEqual(result["rep_score"], 96)
         self.assertEqual(result["quality"], "Отлично")
         self.assertEqual(result["errors"], [])
+        self.assertEqual(result["details"]["hint_codes"], ["good_rep"])
+        self.assertEqual(result["details"]["voice_feedback"]["code"], "good_rep")
+        self.assertTrue(result["details"]["rule_flags"]["good_rep"])
 
     def test_strict_calibration_is_harsher_than_standard(self) -> None:
         standard_result = compare_generated_rep(
@@ -143,6 +146,9 @@ class GeneratedTechniqueTests(unittest.TestCase):
 
         self.assertIn("heel_lift", result["details"]["caps_applied"])
         self.assertIn("Потеря опоры / отрыв пятки", result["errors"])
+        self.assertIn("heel_lift", result["details"]["hint_codes"])
+        self.assertEqual(result["details"]["voice_feedback"]["code"], "heel_lift")
+        self.assertTrue(result["details"]["rule_flags"]["heel_lift"])
         self.assertLessEqual(
             result["rep_score"],
             int(self.calibration_profile["caps"]["severe_heel_lift_max_score"]),

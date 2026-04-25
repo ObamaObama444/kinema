@@ -14,7 +14,7 @@
     var mountedController = null;
     var EXERCISE_CONFIG = {
         squat: {
-            compareEndpoint: '/api/compare/squat',
+            primaryDirection: 'drop',
             minStateFrames: 2,
             cooldownFrames: 5,
             minRepFrames: 8,
@@ -33,7 +33,7 @@
             preRollFrames: 6
         },
         pushup: {
-            compareEndpoint: '/api/compare/pushup',
+            primaryDirection: 'drop',
             minStateFrames: 3,
             cooldownFrames: 5,
             minRepFrames: 6,
@@ -50,6 +50,82 @@
             maxPeakAsymmetry: 38.0,
             minTorsoMotion: 1.2,
             preRollFrames: 5
+        },
+        lunge: {
+            primaryDirection: 'drop',
+            minStateFrames: 2,
+            cooldownFrames: 6,
+            minRepFrames: 10,
+            maxRepFrames: 170,
+            downEnterPrimaryDrop: 22.0,
+            downEnterDepthDelta: 0.06,
+            risingRecoverPrimary: 14.0,
+            risingRecoverDepth: 0.035,
+            upPrimaryTolerance: 16.0,
+            upDepthTolerance: 0.045,
+            minPrimaryAmplitude: 22.0,
+            minDepthAmplitude: 0.06,
+            maxMeanAsymmetry: 26.0,
+            maxPeakAsymmetry: 46.0,
+            minTorsoMotion: 2.2,
+            preRollFrames: 6
+        },
+        glute_bridge: {
+            primaryDirection: 'rise',
+            minStateFrames: 2,
+            cooldownFrames: 6,
+            minRepFrames: 10,
+            maxRepFrames: 200,
+            downEnterPrimaryDrop: 18.0,
+            downEnterDepthDelta: 0.02,
+            risingRecoverPrimary: 12.0,
+            risingRecoverDepth: 0.01,
+            upPrimaryTolerance: 16.0,
+            upDepthTolerance: 0.03,
+            minPrimaryAmplitude: 20.0,
+            minDepthAmplitude: 0.015,
+            maxMeanAsymmetry: 24.0,
+            maxPeakAsymmetry: 40.0,
+            minTorsoMotion: 1.0,
+            preRollFrames: 6
+        },
+        leg_raise: {
+            primaryDirection: 'drop',
+            minStateFrames: 2,
+            cooldownFrames: 6,
+            minRepFrames: 10,
+            maxRepFrames: 220,
+            downEnterPrimaryDrop: 18.0,
+            downEnterDepthDelta: 0.03,
+            risingRecoverPrimary: 11.0,
+            risingRecoverDepth: 0.016,
+            upPrimaryTolerance: 16.0,
+            upDepthTolerance: 0.03,
+            minPrimaryAmplitude: 18.0,
+            minDepthAmplitude: 0.03,
+            maxMeanAsymmetry: 26.0,
+            maxPeakAsymmetry: 42.0,
+            minTorsoMotion: 1.0,
+            preRollFrames: 6
+        },
+        crunch: {
+            primaryDirection: 'drop',
+            minStateFrames: 2,
+            cooldownFrames: 6,
+            minRepFrames: 10,
+            maxRepFrames: 180,
+            downEnterPrimaryDrop: 16.0,
+            downEnterDepthDelta: 0.025,
+            risingRecoverPrimary: 10.0,
+            risingRecoverDepth: 0.015,
+            upPrimaryTolerance: 15.0,
+            upDepthTolerance: 0.03,
+            minPrimaryAmplitude: 16.0,
+            minDepthAmplitude: 0.025,
+            maxMeanAsymmetry: 24.0,
+            maxPeakAsymmetry: 40.0,
+            minTorsoMotion: 0.8,
+            preRollFrames: 6
         }
     };
     var LANDMARK = {
@@ -1126,6 +1202,10 @@
             sessionId: toNumber(options.sessionId, 0),
             exerciseSlug: String(options.exerciseSlug || 'squat'),
             exerciseTitle: String(options.exerciseTitle || 'Упражнение'),
+            motionFamily: String(options.motionFamily || 'squat_like'),
+            viewType: String(options.viewType || 'side'),
+            profileId: toNumber(options.profileId, null),
+            referenceBased: options.referenceBased !== false,
             cameraReady: false,
             cameraTone: 'loading',
             cameraMessage: 'Подключаю камеру...',
@@ -1221,6 +1301,45 @@
             }
 
             return baseConfig;
+        }
+
+        function currentCompareEndpoint() {
+            return '/api/technique/sessions/' + state.sessionId + '/compare';
+        }
+
+        function currentLiveEndpoint() {
+            return '/api/technique/sessions/' + state.sessionId + '/live';
+        }
+
+        function primaryTravel(cfg, baseline, currentValue) {
+            if (cfg.primaryDirection === 'rise') {
+                return Math.max(0, currentValue - baseline);
+            }
+            return Math.max(0, baseline - currentValue);
+        }
+
+        function updatePrimaryExtremum(cfg, previous, currentValue, initializing) {
+            if (initializing) {
+                return currentValue;
+            }
+            if (cfg.primaryDirection === 'rise') {
+                return Math.max(previous, currentValue);
+            }
+            return Math.min(previous, currentValue);
+        }
+
+        function recoverFromExtremum(cfg, currentValue, extremum, recoverThreshold) {
+            if (cfg.primaryDirection === 'rise') {
+                return currentValue <= extremum - recoverThreshold;
+            }
+            return currentValue >= extremum + recoverThreshold;
+        }
+
+        function withinTopTolerance(cfg, currentValue, baseline, tolerance) {
+            if (cfg.primaryDirection === 'rise') {
+                return currentValue <= baseline + tolerance;
+            }
+            return currentValue >= baseline - tolerance;
         }
 
         function averageScore(reps) {
@@ -1392,7 +1511,7 @@
             state.currentState = 'WAIT_READY';
             state.preRoll = [];
             state.repFrames = [];
-            state.minPrimary = 999;
+            state.minPrimary = getConfig().primaryDirection === 'rise' ? -999 : 999;
             state.maxDepth = 0;
             state.maxTorso = 0;
             state.downCounter = 0;
@@ -1438,7 +1557,7 @@
                 return false;
             }
 
-            if (state.exerciseSlug === 'squat') {
+            if (state.motionFamily === 'squat_like' || state.motionFamily === 'lunge_like') {
                 return (
                     toNumber(frame.side_view_score, 0) >= 0.22
                     && toNumber(frame.torso_angle, 90) <= 68
@@ -1454,18 +1573,25 @@
                 );
             }
 
+            if (state.motionFamily === 'push_like') {
+                return (
+                    toNumber(frame.side_view_score, 0) >= 0.35
+                    && toNumber(frame.posture_tilt_deg, 90) <= 34
+                    && toNumber(frame.hip_ankle_vertical_norm, 1) <= 0.45
+                );
+            }
+
             return (
                 toNumber(frame.side_view_score, 0) >= 0.35
-                && toNumber(frame.posture_tilt_deg, 90) <= 34
-                && toNumber(frame.hip_ankle_vertical_norm, 1) <= 0.45
+                && toNumber(frame.posture_tilt_deg, 90) <= 48
             );
         }
 
         function buildLocalRealtimeHint(current, phase, cfg) {
-            if (state.exerciseSlug === 'squat') {
+            if (state.motionFamily === 'squat_like' || state.motionFamily === 'lunge_like') {
                 var baselinePrimary = toNumber(state.baselinePrimary, current.primary_angle);
                 var baselineHeel = Math.max(0, toNumber(state.baselineHeel, 0));
-                var primaryDrop = Math.max(0, baselinePrimary - toNumber(current.primary_angle, baselinePrimary));
+                var primaryDrop = primaryTravel(cfg, baselinePrimary, toNumber(current.primary_angle, baselinePrimary));
                 var depthDelta = toNumber(current.depth_delta, 0);
                 var heelLift = toNumber(current.heel_lift_norm, 0);
                 var heelLiftDelta = Math.max(0, heelLift - baselineHeel);
@@ -1498,16 +1624,36 @@
                 return { tone: 'low', text: 'Темп ровный, амплитуда стабильная.' };
             }
 
-            if (toNumber(current.leg_angle, 180) < 132) {
-                return { tone: 'high', text: 'Выпрямите ноги и держите корпус одной линией.' };
+            if (state.motionFamily === 'push_like') {
+                if (toNumber(current.leg_angle, 180) < 132) {
+                    return { tone: 'high', text: 'Выпрямите ноги и держите корпус одной линией.' };
+                }
+                if (toNumber(current.torso_angle, 0) > 16) {
+                    return { tone: 'med', text: 'Не проваливайте таз, корпус держите ровнее.' };
+                }
+                if (phase === 'DOWN' && toNumber(current.depth_delta, 0) < cfg.downEnterDepthDelta * 0.7) {
+                    return { tone: 'med', text: 'Опуститесь чуть ниже без провала внизу.' };
+                }
+                return { tone: 'low', text: phase === 'RISING' ? 'Поднимайтесь без рывка.' : 'Контролируйте локти и глубину.' };
             }
-            if (toNumber(current.torso_angle, 0) > 16) {
-                return { tone: 'med', text: 'Не проваливайте таз, корпус держите ровнее.' };
+
+            if (state.exerciseSlug === 'glute_bridge') {
+                if (primaryTravel(cfg, toNumber(state.baselinePrimary, current.primary_angle), current.primary_angle) < cfg.minPrimaryAmplitude * 0.5 && phase === 'DOWN') {
+                    return { tone: 'med', text: 'Поднимайте таз выше и фиксируйте верхнюю точку.' };
+                }
+                if (toNumber(current.asymmetry, 0) > 16) {
+                    return { tone: 'med', text: 'Держите таз ровно, без перекоса сторон.' };
+                }
+                return { tone: 'low', text: phase === 'RISING' ? 'Опускайтесь плавно.' : 'Подъём таза под контролем.' };
+            }
+
+            if (toNumber(current.asymmetry, 0) > 18) {
+                return { tone: 'med', text: 'Двигайтесь симметрично и без раскачки.' };
             }
             if (phase === 'DOWN' && toNumber(current.depth_delta, 0) < cfg.downEnterDepthDelta * 0.7) {
-                return { tone: 'med', text: 'Опуститесь чуть ниже без провала внизу.' };
+                return { tone: 'med', text: 'Добавьте амплитуду без рывка.' };
             }
-            return { tone: 'low', text: phase === 'RISING' ? 'Поднимайтесь без рывка.' : 'Контролируйте локти и глубину.' };
+            return { tone: 'low', text: phase === 'RISING' ? 'Возвращайтесь плавно.' : 'Корпус стабилен, темп ровный.' };
         }
 
         function applyRealtimeHint(current, phase, cfg) {
@@ -1552,7 +1698,6 @@
             state.liveRequestPending = true;
             state.lastLiveRequestTs = now;
             payload = {
-                session_id: state.sessionId,
                 phase: phase,
                 frame_metric: current,
                 baseline_snapshot: {
@@ -1565,7 +1710,7 @@
             };
 
             site.sendJson(
-                '/api/technique/live/' + state.exerciseSlug,
+                currentLiveEndpoint(),
                 'POST',
                 payload,
                 'Не удалось получить live-подсказку.'
@@ -1595,6 +1740,10 @@
 
                                 state.exerciseSlug = site.ensureString(exercise.slug, state.exerciseSlug);
                                 state.exerciseTitle = site.ensureString(exercise.title, state.exerciseTitle);
+                                state.motionFamily = site.ensureString(exercise.motion_family, state.motionFamily);
+                                state.viewType = site.ensureString(exercise.view_type, state.viewType);
+                                state.profileId = site.ensureFiniteNumber(exercise.profile_id);
+                                state.referenceBased = exercise.reference_based === true;
                                 if (titleNode) {
                                     titleNode.textContent = state.exerciseTitle;
                                 }
@@ -1616,7 +1765,7 @@
             var depthValues;
             var asymValues;
             var torsoValues;
-            var kneeAmp;
+            var primaryAmp;
             var depthAmp;
             var meanAsym;
             var peakAsym;
@@ -1645,13 +1794,15 @@
             depthValues = repFrames.map(function (frame) { return frame.depth_delta; });
             asymValues = repFrames.map(function (frame) { return frame.asymmetry || 0; });
             torsoValues = repFrames.map(function (frame) { return frame.torso_angle || 0; });
-            kneeAmp = state.baselinePrimary - Math.min.apply(null, primaryAngles);
+            primaryAmp = Math.max.apply(null, primaryAngles.map(function (value) {
+                return primaryTravel(cfg, state.baselinePrimary, value);
+            }));
             depthAmp = Math.max.apply(null, depthValues);
             meanAsym = asymValues.reduce(function (a, b) { return a + b; }, 0) / asymValues.length;
             peakAsym = Math.max.apply(null, asymValues);
             torsoMotion = Math.max.apply(null, torsoValues) - Math.min.apply(null, torsoValues);
 
-            if (state.exerciseSlug === 'squat') {
+            if (state.motionFamily === 'squat_like' || state.motionFamily === 'lunge_like') {
                 meanSquatTorso = meanNumber(repFrames.map(function (frame) { return frame.torso_angle; }), 90);
                 meanSquatHipAnkle = meanNumber(repFrames.map(function (frame) { return frame.hip_ankle_vertical_norm; }), 0);
                 meanSquatSide = meanNumber(repFrames.map(function (frame) { return frame.side_view_score; }), 0);
@@ -1670,13 +1821,14 @@
                 }
 
                 return (
-                    (kneeAmp >= cfg.minPrimaryAmplitude && depthAmp >= cfg.minDepthAmplitude)
-                    || (kneeAmp >= cfg.minPrimaryAmplitude * 0.78 && depthAmp >= cfg.minDepthAmplitude * 0.48)
-                    || (depthAmp >= cfg.minDepthAmplitude * 0.78 && kneeAmp >= cfg.minPrimaryAmplitude * 0.55)
-                    || (kneeAmp >= cfg.minPrimaryAmplitude * 0.40 && depthAmp >= cfg.minDepthAmplitude * 0.35)
+                    (primaryAmp >= cfg.minPrimaryAmplitude && depthAmp >= cfg.minDepthAmplitude)
+                    || (primaryAmp >= cfg.minPrimaryAmplitude * 0.78 && depthAmp >= cfg.minDepthAmplitude * 0.48)
+                    || (depthAmp >= cfg.minDepthAmplitude * 0.78 && primaryAmp >= cfg.minPrimaryAmplitude * 0.55)
+                    || (primaryAmp >= cfg.minPrimaryAmplitude * 0.40 && depthAmp >= cfg.minDepthAmplitude * 0.35)
                 );
             }
 
+            if (state.motionFamily === 'push_like') {
             meanPushTilt = meanNumber(repFrames.map(function (frame) { return frame.posture_tilt_deg; }), 90);
             meanPushHipAnkle = meanNumber(repFrames.map(function (frame) { return frame.hip_ankle_vertical_norm; }), 1);
             meanPushSide = meanNumber(repFrames.map(function (frame) { return frame.side_view_score; }), 0);
@@ -1689,9 +1841,16 @@
             }
 
             return (
-                (kneeAmp >= cfg.minPrimaryAmplitude && depthAmp >= cfg.minDepthAmplitude)
-                || (kneeAmp >= cfg.minPrimaryAmplitude * 0.9 && depthAmp >= cfg.minDepthAmplitude * 0.55)
-                || (depthAmp >= cfg.minDepthAmplitude && kneeAmp >= cfg.minPrimaryAmplitude * 0.65)
+                (primaryAmp >= cfg.minPrimaryAmplitude && depthAmp >= cfg.minDepthAmplitude)
+                || (primaryAmp >= cfg.minPrimaryAmplitude * 0.9 && depthAmp >= cfg.minDepthAmplitude * 0.55)
+                || (depthAmp >= cfg.minDepthAmplitude && primaryAmp >= cfg.minPrimaryAmplitude * 0.65)
+            );
+            }
+
+            return (
+                primaryAmp >= cfg.minPrimaryAmplitude * 0.75
+                || depthAmp >= cfg.minDepthAmplitude
+                || (primaryAmp >= cfg.minPrimaryAmplitude * 0.55 && torsoMotion >= cfg.minTorsoMotion * 0.75)
             );
         }
 
@@ -1939,7 +2098,7 @@
 
         function scoreRepViaApi(repFrames) {
             return site.sendJson(
-                getConfig().compareEndpoint,
+                currentCompareEndpoint(),
                 'POST',
                 {
                     rep_index: state.repIndex + 1,
@@ -2105,9 +2264,11 @@
                     state.topReadyFrames = 0;
                 }
                 state.latestQuality = 'Нужно улучшить';
-                state.latestHint = state.exerciseSlug === 'squat'
-                    ? 'Встаньте боком к камере и держите ноги с корпусом в кадре.'
-                    : 'Примите упор лёжа боком к камере и выпрямите корпус.';
+                state.latestHint = state.motionFamily === 'push_like'
+                    ? 'Примите упор лёжа боком к камере и выпрямите корпус.'
+                    : (state.motionFamily === 'core_like'
+                        ? 'Лягте боком к камере и держите корпус с ногами в кадре.'
+                        : 'Встаньте боком к камере и держите ноги с корпусом в кадре.');
                 state.liveHintTone = 'high';
                 return;
             }
@@ -2155,7 +2316,7 @@
             }
 
             if (state.currentState === 'TOP') {
-                primaryDrop = state.baselinePrimary - current.primary_angle;
+                primaryDrop = primaryTravel(cfg, state.baselinePrimary, current.primary_angle);
                 armCondition = primaryDrop >= cfg.downEnterPrimaryDrop * 0.28 && current.depth_delta >= cfg.downEnterDepthDelta * 0.16;
                 state.descentTrendCounter = armCondition
                     ? Math.min(state.descentTrendCounter + 1, 8)
@@ -2209,17 +2370,17 @@
 
             if (state.currentState === 'DOWN') {
                 state.repFrames.push(current);
-                state.minPrimary = Math.min(state.minPrimary, current.primary_angle);
+                state.minPrimary = updatePrimaryExtremum(cfg, state.minPrimary, current.primary_angle, false);
                 state.maxDepth = Math.max(state.maxDepth, current.depth_delta);
                 state.maxTorso = Math.max(state.maxTorso, current.torso_angle || 0);
                 reachedWorkingDepth = (
-                    (state.baselinePrimary - state.minPrimary) >= cfg.minPrimaryAmplitude * 0.35
+                    primaryTravel(cfg, state.baselinePrimary, state.minPrimary) >= cfg.minPrimaryAmplitude * 0.35
                     || state.maxDepth >= cfg.minDepthAmplitude * 0.40
                 );
                 recoverCondition = (
-                    (current.primary_angle >= state.minPrimary + cfg.risingRecoverPrimary
+                    (recoverFromExtremum(cfg, current.primary_angle, state.minPrimary, cfg.risingRecoverPrimary)
                         || current.depth_delta <= Math.max(0, state.maxDepth - cfg.risingRecoverDepth))
-                    && current.primary_angle >= state.minPrimary + cfg.risingRecoverPrimary * 0.28
+                    && recoverFromExtremum(cfg, current.primary_angle, state.minPrimary, cfg.risingRecoverPrimary * 0.28)
                     && current.depth_delta <= Math.max(0, state.maxDepth - cfg.risingRecoverDepth * 0.28)
                     && reachedWorkingDepth
                 );
@@ -2243,20 +2404,20 @@
 
             if (state.currentState === 'RISING') {
                 state.repFrames.push(current);
-                state.minPrimary = Math.min(state.minPrimary, current.primary_angle);
+                state.minPrimary = updatePrimaryExtremum(cfg, state.minPrimary, current.primary_angle, false);
                 state.maxDepth = Math.max(state.maxDepth, current.depth_delta);
                 state.maxTorso = Math.max(state.maxTorso, current.torso_angle || 0);
 
                 if (state.exerciseSlug === 'pushup') {
                     upCondition = (
-                        (current.primary_angle >= state.baselinePrimary - cfg.upPrimaryTolerance
-                            && (state.baselinePrimary - state.minPrimary) >= cfg.minPrimaryAmplitude * 0.68)
-                        || (current.primary_angle >= state.baselinePrimary - cfg.upPrimaryTolerance * 1.3
+                        (withinTopTolerance(cfg, current.primary_angle, state.baselinePrimary, cfg.upPrimaryTolerance)
+                            && primaryTravel(cfg, state.baselinePrimary, state.minPrimary) >= cfg.minPrimaryAmplitude * 0.68)
+                        || (withinTopTolerance(cfg, current.primary_angle, state.baselinePrimary, cfg.upPrimaryTolerance * 1.3)
                             && current.depth_delta <= cfg.upDepthTolerance)
                     );
                 } else {
                     upCondition = (
-                        current.primary_angle >= state.baselinePrimary - cfg.upPrimaryTolerance
+                        withinTopTolerance(cfg, current.primary_angle, state.baselinePrimary, cfg.upPrimaryTolerance)
                         && current.depth_delta <= cfg.upDepthTolerance
                     );
                 }
@@ -2279,7 +2440,7 @@
                     state.topReadyFrames = 0;
                     state.preRoll = [current];
                     state.repFrames = [];
-                    state.minPrimary = 999;
+                    state.minPrimary = cfg.primaryDirection === 'rise' ? -999 : 999;
                     state.maxDepth = 0;
                     state.maxTorso = 0;
                     state.descentArmed = false;
@@ -2569,6 +2730,7 @@
 
         function onPoseResults(results) {
             var metrics;
+            var techniqueUtils = window.KinematicsCustomTechnique;
 
             drawOverlay(results);
 
@@ -2576,11 +2738,20 @@
                 return;
             }
 
-            metrics = state.exerciseSlug === 'squat'
-                ? buildSquatMetrics(results.poseLandmarks)
-                : (isPushupDemoMode()
-                    ? buildPushupDemoMetrics(results.poseLandmarks)
-                    : buildPushupMetrics(results.poseLandmarks));
+            if (isPushupDemoMode()) {
+                metrics = buildPushupDemoMetrics(results.poseLandmarks);
+            } else if (techniqueUtils && typeof techniqueUtils.buildMetricFrame === 'function') {
+                metrics = techniqueUtils.buildMetricFrame(
+                    results.poseLandmarks,
+                    state.motionFamily || 'squat_like',
+                    state.viewType || 'side',
+                    Date.now()
+                );
+            } else {
+                metrics = state.exerciseSlug === 'squat'
+                    ? buildSquatMetrics(results.poseLandmarks)
+                    : buildPushupMetrics(results.poseLandmarks);
+            }
 
             if (!metrics) {
                 state.latestHint = 'Ключевые точки корпуса вне кадра. Вернитесь в позицию.';
@@ -2898,6 +3069,10 @@
 
                                 state.exerciseSlug = site.ensureString(exercise.slug, state.exerciseSlug);
                                 state.exerciseTitle = site.ensureString(exercise.title, state.exerciseTitle);
+                                state.motionFamily = site.ensureString(exercise.motion_family, state.motionFamily);
+                                state.viewType = site.ensureString(exercise.view_type, state.viewType);
+                                state.profileId = site.ensureFiniteNumber(exercise.profile_id);
+                                state.referenceBased = exercise.reference_based === true;
                                 payload.exercise = state.exerciseSlug;
                                 if (titleNode) {
                                     titleNode.textContent = state.exerciseTitle;

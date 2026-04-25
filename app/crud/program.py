@@ -3,6 +3,7 @@ from typing import Any
 from sqlalchemy import Select, delete, or_, select
 from sqlalchemy.orm import Session, joinedload
 
+from app.core.exercise_catalog import CATALOG_DB_ALIASES_BY_SLUG
 from app.models.exercise import Exercise
 from app.models.profile import Profile
 from app.models.program import Program
@@ -14,21 +15,17 @@ CUSTOM_PROGRAM_LEVEL = "beginner"
 CUSTOM_PROGRAM_DURATION_WEEKS = 4
 
 _CATALOG_TO_EXERCISE_NAME = {
-    "squat": "Приседания с собственным весом",
+    "squat": "Приседания",
     "pushup": "Отжимания",
-    "plank": "Планка",
-    "lunge": "Выпады",
-    "burpee": "Берпи",
-    "band_row": "Тяга резинки к поясу",
+    "lunge": "Выпад назад",
     "glute_bridge": "Ягодичный мост",
+    "leg_raise": "Подъёмы ног лежа",
     "crunch": "Скручивания",
-    "calf_raise": "Подъемы на носки",
-    "superman": "Супермен",
 }
 
 _CATALOG_EXERCISE_FALLBACK = {
     "squat": {
-        "name": "Приседания с собственным весом",
+        "name": "Приседания",
         "description": "Базовое упражнение на ноги и ягодицы.",
         "equipment": None,
         "primary_muscles": "Квадрицепсы, ягодицы",
@@ -41,32 +38,11 @@ _CATALOG_EXERCISE_FALLBACK = {
         "primary_muscles": "Грудь, трицепс, плечи",
         "difficulty": "medium",
     },
-    "plank": {
-        "name": "Планка",
-        "description": "Статическое упражнение для мышц кора.",
-        "equipment": None,
-        "primary_muscles": "Кора, поясница",
-        "difficulty": "easy",
-    },
     "lunge": {
-        "name": "Выпады",
-        "description": "Развитие силы ног и стабилизации.",
+        "name": "Выпад назад",
+        "description": "Контролируемый шаг назад для силы ног и устойчивости.",
         "equipment": None,
         "primary_muscles": "Квадрицепсы, ягодицы",
-        "difficulty": "medium",
-    },
-    "burpee": {
-        "name": "Берпи",
-        "description": "Интенсивное кардио для выносливости.",
-        "equipment": None,
-        "primary_muscles": "Все тело",
-        "difficulty": "hard",
-    },
-    "band_row": {
-        "name": "Тяга резинки к поясу",
-        "description": "Укрепление мышц спины.",
-        "equipment": "Фитнес-резинка",
-        "primary_muscles": "Широчайшие, ромбовидные",
         "difficulty": "medium",
     },
     "glute_bridge": {
@@ -76,25 +52,18 @@ _CATALOG_EXERCISE_FALLBACK = {
         "primary_muscles": "Ягодицы, бицепс бедра",
         "difficulty": "easy",
     },
+    "leg_raise": {
+        "name": "Подъёмы ног лежа",
+        "description": "Контроль пресса и подъёма ног без рывка.",
+        "equipment": None,
+        "primary_muscles": "Пресс, сгибатели бедра",
+        "difficulty": "easy",
+    },
     "crunch": {
         "name": "Скручивания",
         "description": "Базовая работа на пресс.",
         "equipment": None,
         "primary_muscles": "Пресс",
-        "difficulty": "easy",
-    },
-    "calf_raise": {
-        "name": "Подъемы на носки",
-        "description": "Укрепление икроножных мышц.",
-        "equipment": None,
-        "primary_muscles": "Икроножные",
-        "difficulty": "easy",
-    },
-    "superman": {
-        "name": "Супермен",
-        "description": "Упражнение для разгибателей спины.",
-        "equipment": None,
-        "primary_muscles": "Поясница, ягодицы",
         "difficulty": "easy",
     },
 }
@@ -107,85 +76,26 @@ def ensure_seed_programs(db: Session) -> None:
     if existing_global_program_id is not None:
         return
 
-    exercises_payload = [
-        {
-            "name": "Приседания с собственным весом",
-            "description": "Базовое упражнение на ноги и ягодицы.",
-            "equipment": None,
-            "primary_muscles": "Квадрицепсы, ягодицы",
-            "difficulty": "easy",
-        },
-        {
-            "name": "Отжимания",
-            "description": "Укрепление грудных мышц, плеч и трицепсов.",
-            "equipment": None,
-            "primary_muscles": "Грудь, трицепс, плечи",
-            "difficulty": "medium",
-        },
-        {
-            "name": "Планка",
-            "description": "Статическое упражнение для мышц кора.",
-            "equipment": None,
-            "primary_muscles": "Кора, поясница",
-            "difficulty": "easy",
-        },
-        {
-            "name": "Выпады",
-            "description": "Развитие силы ног и стабилизации.",
-            "equipment": None,
-            "primary_muscles": "Квадрицепсы, ягодицы",
-            "difficulty": "medium",
-        },
-        {
-            "name": "Берпи",
-            "description": "Интенсивное кардио для выносливости.",
-            "equipment": None,
-            "primary_muscles": "Все тело",
-            "difficulty": "hard",
-        },
-        {
-            "name": "Тяга резинки к поясу",
-            "description": "Укрепление мышц спины.",
-            "equipment": "Фитнес-резинка",
-            "primary_muscles": "Широчайшие, ромбовидные",
-            "difficulty": "medium",
-        },
-        {
-            "name": "Ягодичный мост",
-            "description": "Изолированная работа ягодичных мышц.",
-            "equipment": None,
-            "primary_muscles": "Ягодицы, бицепс бедра",
-            "difficulty": "easy",
-        },
-        {
-            "name": "Скручивания",
-            "description": "Базовая работа на пресс.",
-            "equipment": None,
-            "primary_muscles": "Пресс",
-            "difficulty": "easy",
-        },
-        {
-            "name": "Подъемы на носки",
-            "description": "Укрепление икроножных мышц.",
-            "equipment": None,
-            "primary_muscles": "Икроножные",
-            "difficulty": "easy",
-        },
-        {
-            "name": "Супермен",
-            "description": "Упражнение для разгибателей спины.",
-            "equipment": None,
-            "primary_muscles": "Поясница, ягодицы",
-            "difficulty": "easy",
-        },
-    ]
+    exercises_payload = list(_CATALOG_EXERCISE_FALLBACK.values())
 
     exercise_by_name: dict[str, Exercise] = {}
     for payload in exercises_payload:
+        aliases: list[str] = []
+        for slug, fallback in _CATALOG_EXERCISE_FALLBACK.items():
+            if fallback["name"] == payload["name"]:
+                aliases = CATALOG_DB_ALIASES_BY_SLUG.get(slug, [])
+                break
+
         existing = db.execute(
-            select(Exercise).where(Exercise.name == payload["name"])
+            select(Exercise).where(Exercise.name.in_([payload["name"], *aliases]))
         ).scalar_one_or_none()
         if existing is not None:
+            existing.name = payload["name"]
+            existing.description = payload["description"]
+            existing.equipment = payload["equipment"]
+            existing.primary_muscles = payload["primary_muscles"]
+            existing.difficulty = payload["difficulty"]
+            db.add(existing)
             exercise_by_name[existing.name] = existing
             continue
 
@@ -204,7 +114,7 @@ def ensure_seed_programs(db: Session) -> None:
             },
             "exercises": [
                 {
-                    "exercise_name": "Приседания с собственным весом",
+                    "exercise_name": "Приседания",
                     "sets": 3,
                     "reps": 12,
                     "rest_sec": 60,
@@ -218,11 +128,11 @@ def ensure_seed_programs(db: Session) -> None:
                     "tempo": "2-0-2",
                 },
                 {
-                    "exercise_name": "Планка",
+                    "exercise_name": "Скручивания",
                     "sets": 3,
-                    "reps": 1,
+                    "reps": 16,
                     "rest_sec": 45,
-                    "tempo": "30с",
+                    "tempo": "1-1-1",
                 },
                 {
                     "exercise_name": "Ягодичный мост",
@@ -242,32 +152,32 @@ def ensure_seed_programs(db: Session) -> None:
             },
             "exercises": [
                 {
-                    "exercise_name": "Выпады",
+                    "exercise_name": "Выпад назад",
                     "sets": 4,
                     "reps": 10,
                     "rest_sec": 75,
                     "tempo": "2-1-2",
                 },
                 {
-                    "exercise_name": "Тяга резинки к поясу",
+                    "exercise_name": "Отжимания",
                     "sets": 4,
-                    "reps": 12,
-                    "rest_sec": 60,
+                    "reps": 10,
+                    "rest_sec": 70,
                     "tempo": "2-0-2",
+                },
+                {
+                    "exercise_name": "Подъёмы ног лежа",
+                    "sets": 3,
+                    "reps": 14,
+                    "rest_sec": 45,
+                    "tempo": "1-1-1",
                 },
                 {
                     "exercise_name": "Скручивания",
                     "sets": 3,
                     "reps": 18,
-                    "rest_sec": 45,
-                    "tempo": "1-1-1",
-                },
-                {
-                    "exercise_name": "Подъемы на носки",
-                    "sets": 4,
-                    "reps": 20,
                     "rest_sec": 40,
-                    "tempo": "2-1-2",
+                    "tempo": "1-1-1",
                 },
             ],
         },
@@ -280,30 +190,30 @@ def ensure_seed_programs(db: Session) -> None:
             },
             "exercises": [
                 {
-                    "exercise_name": "Берпи",
-                    "sets": 5,
-                    "reps": 10,
-                    "rest_sec": 60,
-                    "tempo": "взрывной",
-                },
-                {
-                    "exercise_name": "Планка",
-                    "sets": 4,
-                    "reps": 1,
-                    "rest_sec": 40,
-                    "tempo": "45с",
-                },
-                {
-                    "exercise_name": "Приседания с собственным весом",
+                    "exercise_name": "Приседания",
                     "sets": 4,
                     "reps": 20,
+                    "rest_sec": 60,
+                    "tempo": "2-0-2",
+                },
+                {
+                    "exercise_name": "Отжимания",
+                    "sets": 4,
+                    "reps": 12,
+                    "rest_sec": 55,
+                    "tempo": "2-0-2",
+                },
+                {
+                    "exercise_name": "Выпад назад",
+                    "sets": 4,
+                    "reps": 12,
                     "rest_sec": 50,
                     "tempo": "2-0-2",
                 },
                 {
-                    "exercise_name": "Супермен",
+                    "exercise_name": "Подъёмы ног лежа",
                     "sets": 3,
-                    "reps": 15,
+                    "reps": 16,
                     "rest_sec": 45,
                     "tempo": "2-1-2",
                 },

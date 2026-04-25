@@ -3,14 +3,10 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 ALLOWED_CUSTOM_EXERCISE_SLUGS = {
     "squat",
     "pushup",
-    "plank",
     "lunge",
-    "burpee",
-    "band_row",
     "glute_bridge",
+    "leg_raise",
     "crunch",
-    "calf_raise",
-    "superman",
 }
 
 

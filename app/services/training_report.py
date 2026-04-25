@@ -9,6 +9,8 @@ from pathlib import Path
 from threading import Lock
 from typing import Any
 
+from app.core.exercise_catalog import CATALOG_TITLE_BY_SLUG
+
 try:
     from huggingface_hub import hf_hub_download, list_repo_files
 except ImportError:  # pragma: no cover
@@ -884,11 +886,10 @@ def _normalize_issue_title(title: Any, code: Any) -> str:
 
 def _exercise_title(exercise_slug: Any) -> str:
     slug = _to_clean_text(exercise_slug, fallback="").lower()
-    if slug == "squat":
-        return "Приседания"
-    if slug == "pushup":
-        return "Отжимания"
-    return _to_clean_text(exercise_slug, fallback="Тренировка")
+    return CATALOG_TITLE_BY_SLUG.get(
+        slug,
+        _to_clean_text(exercise_slug, fallback="Тренировка"),
+    )
 
 
 def _flag_reps(report_payload: dict[str, Any], key: str) -> set[int]:
